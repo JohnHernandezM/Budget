@@ -30,19 +30,20 @@ Dim cMenuDelete As CommandBarButton
 
 Sub AddDeleteTableRowMenu()
     On Error Resume Next
-    ' Delete existing if exists
     RemoveDeleteTableRowMenu
     
-    ' Add menu item to Cell context menu
-    Set cMenuDelete = Application.CommandBars("Cell").Controls.Add(Type:=msoControlButton, Temporary:=True)
+    ' Add to the List Row context menu (works when right-clicking inside a table row)
+    Set cMenuDelete = Application.CommandBars("List Row").Controls.Add(Type:=msoControlButton, Temporary:=True)
     With cMenuDelete
         .Caption = "Delete Table Row"
         .OnAction = "DeleteSelectedTableRow"
-        .BeginGroup = True  ' optional: adds a separator
+        .BeginGroup = True   ' optional separator
     End With
 End Sub
+
 
 Sub RemoveDeleteTableRowMenu()
     On Error Resume Next
     If Not cMenuDelete Is Nothing Then cMenuDelete.Delete
 End Sub
+
