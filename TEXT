@@ -27,6 +27,6 @@ Sub LockPlusSheet()
                AllowFiltering:=False, _
                AllowUsingPivotTables:=False
     
-    ' Make sure the selection box is visible
+    ' Restrict selection to editable cells only
     ws.EnableSelection = xlUnlockedCells
 End Sub
