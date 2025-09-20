@@ -1,0 +1,48 @@
+Option Explicit
+
+Private Sub Worksheet_Activate()
+    ' Reapply protection when sheet is activated
+    On Error Resume Next
+    Call UpdateGaliciaProtection
+    On Error GoTo 0
+End Sub
+
+Private Sub Worksheet_Change(ByVal Target As Range)
+    ' Reapply protection dynamically if tables change (checkboxes may appear/disappear)
+    Dim monitorRange As Range
+    Dim lo As ListObject
+    On Error Resume Next
+    
+    Set lo = Me.ListObjects("Galicia_Visa")
+    If Not lo Is Nothing Then Set monitorRange = lo.Range
+    If Not monitorRange Is Nothing Then
+        If Not Intersect(Target, monitorRange) Is Nothing Then
+            Call UpdateGaliciaProtection
+            Exit Sub
+        End If
+    End If
+    
+    Set lo = Nothing
+    Set monitorRange = Nothing
+    Set lo = Me.ListObjects("Galicia_Visa_2025")
+    If Not lo Is Nothing Then Set monitorRange = lo.Range
+    If Not monitorRange Is Nothing Then
+        If Not Intersect(Target, monitorRange) Is Nothing Then
+            Call UpdateGaliciaProtection
+            Exit Sub
+        End If
+    End If
+    
+    Set lo = Nothing
+    Set monitorRange = Nothing
+    Set lo = Me.ListObjects("Galicia_Visa_2026")
+    If Not lo Is Nothing Then Set monitorRange = lo.Range
+    If Not monitorRange Is Nothing Then
+        If Not Intersect(Target, monitorRange) Is Nothing Then
+            Call UpdateGaliciaProtection
+            Exit Sub
+        End If
+    End If
+    
+    On Error GoTo 0
+End Sub
