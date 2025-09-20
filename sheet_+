@@ -1,0 +1,47 @@
+Private Sub Worksheet_Change(ByVal Target As Range)
+
+    Dim watchCell As Range
+    
+    Set watchCell = Me.Range("C2")
+    
+    If Intersect(Target, watchCell) Is Nothing Then Exit Sub
+    
+    Application.EnableEvents = False
+    
+    On Error GoTo CleanUp
+    
+    Dim tbl As ListObject
+    Dim ws As Worksheet
+    Dim lr As ListRow
+    Dim key As String
+    Dim found As Boolean
+    
+    key = Trim(CStr(watchCell.Value))
+    
+    For Each ws In ThisWorkbook.Worksheets
+        On Error Resume Next
+        Set tbl = ws.ListObjects("Data_Bank_Logo")
+        On Error GoTo 0
+        If Not tbl Is Nothing Then Exit For
+    Next ws
+    
+    If tbl Is Nothing Then GoTo CleanUp
+    
+    found = False
+    
+    For Each lr In tbl.ListRows
+        If Trim(CStr(lr.Range.Cells(1, 1).Value)) = key Then
+            Me.Range("C6").Interior.Color = lr.Range.Cells(1, 3).Interior.Color
+            found = True
+            Exit For
+        End If
+    Next lr
+    
+    If Not found Then
+        Me.Range("C6").Interior.Pattern = xlNone
+    End If
+
+CleanUp:
+    Application.EnableEvents = True
+End Sub
+
