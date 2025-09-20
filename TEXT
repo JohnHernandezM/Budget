@@ -1,32 +1,26 @@
-Sub LockPlusSheet()
-    Dim ws As Worksheet
-    Set ws = ThisWorkbook.Worksheets("+")
-    
-    ' Remove any existing protection first
-    On Error Resume Next
-    ws.Unprotect
-    On Error GoTo 0
-    
-    ' Lock all cells by default
-    ws.Cells.Locked = True
-    
-    ' Unlock the cells that must stay editable
-    ws.Range("C2,C4,C6").Locked = False
-    
-    ' Protect the sheet
-    ws.Protect Password:="", _
-               UserInterfaceOnly:=True, _
-               AllowFormattingCells:=False, _
-               AllowFormattingColumns:=False, _
-               AllowFormattingRows:=False, _
-               AllowInsertingColumns:=False, _
-               AllowInsertingRows:=False, _
-               AllowDeletingColumns:=False, _
-               AllowDeletingRows:=False, _
-               AllowSorting:=False, _
-               AllowFiltering:=False, _
-               AllowUsingPivotTables:=False
-    
-    ' Restrict selection to editable cells only
-    ws.EnableSelection = xlUnlockedCells
-End Sub
+I have a sheet called "GALICIA VISA".
+
+I want the whole sheet to be protected this way:
+
+(*) Rows belonging to Table named "Galicia_Visa": 
+Columns B to G: unprotected
+Column G: protected
+Column I to J: unprotected
+
+(*) Rows belonging to Table named "Galicia_Visa_2025"
+Columns L to W: 
+- If contains Checkbox: unprotected
+- If does not contain Checkbox: protected
+
+(*) Rows belonging to Table named "Galicia_Visa_2026"
+Columns Y to AJ: 
+- If contains Checkbox: unprotected
+- If does not contain Checkbox: protected
+
+IMPORTANT:
+
+- The rest of the sheet must be protected. 
+- User must be able only to select and edit contents of the unprotected cells. 
+- Selection Box must be visible.
+- Any format/change done via VBA internal code must be accepted. 
+- For Tables ending in _2025 and _2026, please be aware that Checkboxes may appear or disappear based on some input values in Table Galicia_Visa. So the protection must be dynamic. 
