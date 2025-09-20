@@ -1,12 +1,4 @@
 Private Sub Workbook_Open()
     ' Apply protection
     UpdateGaliciaProtection
-    
-    ' Add custom right-click menu for table rows
-    Call AddDeleteTableRowMenu
-End Sub
-
-Private Sub Workbook_BeforeClose(Cancel As Boolean)
-    ' Clean up custom menu on close
-    Call RemoveDeleteTableRowMenu
 End Sub
