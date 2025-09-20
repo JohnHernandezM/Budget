@@ -1,0 +1,32 @@
+Sub LockPlusSheet()
+    Dim ws As Worksheet
+    Set ws = ThisWorkbook.Worksheets("+")
+    
+    ' Remove any existing protection first
+    On Error Resume Next
+    ws.Unprotect
+    On Error GoTo 0
+    
+    ' Lock all cells by default
+    ws.Cells.Locked = True
+    
+    ' Unlock the cells that must stay editable
+    ws.Range("C2,C4,C6").Locked = False
+    
+    ' Protect the sheet
+    ws.Protect Password:="", _
+               UserInterfaceOnly:=True, _
+               AllowFormattingCells:=False, _
+               AllowFormattingColumns:=False, _
+               AllowFormattingRows:=False, _
+               AllowInsertingColumns:=False, _
+               AllowInsertingRows:=False, _
+               AllowDeletingColumns:=False, _
+               AllowDeletingRows:=False, _
+               AllowSorting:=False, _
+               AllowFiltering:=False, _
+               AllowUsingPivotTables:=False
+    
+    ' Make sure the selection box is visible
+    ws.EnableSelection = xlUnlockedCells
+End Sub
