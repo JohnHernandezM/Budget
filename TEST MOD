@@ -1,161 +1,27 @@
-Option Explicit
-
-' ---------- CONFIG ----------
-Public Const GAL_SHEET_NAME As String = "GALICIA VISA"
-Public Const PASSWORD_PROTECT As String = ""    ' set a password if you want
-' ----------------------------
-
-' Main entry point - call to set up protection according to rules
-Public Sub UpdateGaliciaProtection()
-    Dim wb As Workbook: Set wb = ThisWorkbook
+Sub DeleteSelectedTableRow()
     Dim ws As Worksheet
-    On Error Resume Next
-    Set ws = wb.Worksheets(GAL_SHEET_NAME)
-    On Error GoTo 0
-    If ws Is Nothing Then Exit Sub
-    
-    Dim tbl As ListObject
     Dim lo As ListObject
-    Dim r As Range
-    Dim rowRange As Range
-    Dim cell As Range
+    Dim selRow As Range
     
-    Application.ScreenUpdating = False
-    Application.EnableEvents = False
+    Set ws = ThisWorkbook.Worksheets("GALICIA VISA")
     
-    ' Unprotect to make changes
-    On Error Resume Next
-    ws.Unprotect Password:=PASSWORD_PROTECT
-    On Error GoTo 0
-    
-    ' Lock entire sheet by default
-    ws.Cells.Locked = True
-    
-    ' ---- 1) Galicia_Visa table rules ----
-    Set lo = Nothing
-    On Error Resume Next
-    Set lo = ws.ListObjects("Galicia_Visa")
-    On Error GoTo 0
-    If Not lo Is Nothing Then
-        If Not lo.DataBodyRange Is Nothing Then
-            ' For every data row, unlock columns B:G and I:J; lock H
-            Dim rw As Range
-            For Each rw In lo.DataBodyRange.Rows
-                ' unlock B:G
-                rw.Worksheet.Range(rw.Worksheet.Cells(rw.Row, "B"), rw.Worksheet.Cells(rw.Row, "G")).Locked = False
-                ' lock H
-                rw.Worksheet.Cells(rw.Row, "H").Locked = True
-                ' unlock I:J
-                rw.Worksheet.Range(rw.Worksheet.Cells(rw.Row, "I"), rw.Worksheet.Cells(rw.Row, "J")).Locked = False
-            Next rw
+    ' Check if selection is inside a table
+    For Each lo In ws.ListObjects
+        If Not Intersect(Selection, lo.DataBodyRange) Is Nothing Then
+            Set selRow = Selection.EntireRow
+            
+            ' Temporarily unprotect the sheet
+            ws.Unprotect Password:=""
+            
+            ' Delete the selected row(s)
+            selRow.Delete
+            
+            ' Reapply protection & dynamic locking
+            UpdateGaliciaProtection
+            
+            Exit Sub
         End If
-    End If
+    Next lo
     
-    ' ---- 2) Galicia_Visa_2025 rules: columns L:W ----
-    Set lo = Nothing
-    On Error Resume Next
-    Set lo = ws.ListObjects("Galicia_Visa_2025")
-    On Error GoTo 0
-    If Not lo Is Nothing Then
-        If Not lo.DataBodyRange Is Nothing Then
-            For Each rowRange In lo.DataBodyRange.Rows
-                For Each cell In ws.Range(ws.Cells(rowRange.Row, "L"), ws.Cells(rowRange.Row, "W"))
-                    If CellHasCheckboxAnchored(ws, cell) Then
-                        cell.Locked = False
-                    Else
-                        cell.Locked = True
-                    End If
-                Next cell
-            Next rowRange
-        End If
-    End If
-    
-    ' ---- 3) Galicia_Visa_2026 rules: columns Y:AJ ----
-    Set lo = Nothing
-    On Error Resume Next
-    Set lo = ws.ListObjects("Galicia_Visa_2026")
-    On Error GoTo 0
-    If Not lo Is Nothing Then
-        If Not lo.DataBodyRange Is Nothing Then
-            For Each rowRange In lo.DataBodyRange.Rows
-                For Each cell In ws.Range(ws.Cells(rowRange.Row, "Y"), ws.Cells(rowRange.Row, "AJ"))
-                    If CellHasCheckboxAnchored(ws, cell) Then
-                        cell.Locked = False
-                    Else
-                        cell.Locked = True
-                    End If
-                Next cell
-            Next rowRange
-        End If
-    End If
-    
-    ' Protect sheet: UserInterfaceOnly = True so VBA can change formatting
-    On Error Resume Next
-    ws.Protect Password:=PASSWORD_PROTECT, UserInterfaceOnly:=True, _
-               AllowFormattingCells:=False, AllowFormattingColumns:=False, AllowFormattingRows:=False, _
-               AllowInsertingColumns:=False, AllowInsertingRows:=False, _
-               AllowDeletingColumns:=False, AllowDeletingRows:=False, _
-               AllowSorting:=False, AllowFiltering:=False, AllowUsingPivotTables:=False
-    On Error GoTo 0
-    
-    ' Restrict selection only to unlocked cells but keep selection rectangle visible
-    ws.EnableSelection = xlUnlockedCells
-    
-CleanUp:
-    Application.EnableEvents = True
-    Application.ScreenUpdating = True
+    MsgBox "Please select a row inside a table to delete.", vbInformation
 End Sub
-
-' Helper: returns True if there is a checkbox (Form control or ActiveX) anchored to the specified cell
-Private Function CellHasCheckboxAnchored(ByVal ws As Worksheet, ByVal rng As Range) As Boolean
-    Dim shp As Shape
-    Dim ole As OLEObject
-    Dim tLeft As Range
-    Dim found As Boolean: found = False
-    
-    ' Check Shapes (Form Control checkboxes are Shapes)
-    For Each shp In ws.Shapes
-        On Error Resume Next
-        Set tLeft = Nothing
-        Set tLeft = shp.TopLeftCell
-        On Error GoTo 0
-        If Not tLeft Is Nothing Then
-            If tLeft.Address = rng.Address Then
-                On Error Resume Next
-                If shp.FormControlType = xlCheckBox Then
-                    found = True
-                    Exit For
-                End If
-                On Error GoTo 0
-                ' fallback: check name contains "CheckBox"
-                If InStr(1, shp.Name, "CheckBox", vbTextCompare) > 0 Then
-                    found = True
-                    Exit For
-                End If
-            End If
-        End If
-    Next shp
-    
-    If found Then
-        CellHasCheckboxAnchored = True
-        Exit Function
-    End If
-    
-    ' Check ActiveX OLEObjects
-    For Each ole In ws.OLEObjects
-        On Error Resume Next
-        Set tLeft = Nothing
-        Set tLeft = ole.TopLeftCell
-        On Error GoTo 0
-        If Not tLeft Is Nothing Then
-            If tLeft.Address = rng.Address Then
-                If InStr(1, ole.progID, "CheckBox", vbTextCompare) > 0 Then
-                    found = True
-                    Exit For
-                End If
-            End If
-        End If
-    Next ole
-    
-    CellHasCheckboxAnchored = found
-End Function
