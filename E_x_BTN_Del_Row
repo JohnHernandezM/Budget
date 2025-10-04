@@ -1,0 +1,365 @@
+Option Explicit
+
+' ==============================================================================================================================================
+' ------------------------------------------------------------- DELETE ROW: Button Installer ---------------------------------------------------
+' ==============================================================================================================================================
+
+' - One-time installer.
+' - Selects Sheet from comment.
+Public Sub Install_BTN_DelRow()
+
+    Dim prevEvents As Boolean, prevScreen As Boolean
+    
+    prevEvents = Application.EnableEvents
+    prevScreen = Application.ScreenUpdating
+
+    On Error GoTo CleanExit
+    
+    Application.EnableEvents = False
+    Application.ScreenUpdating = False
+
+    Dim ws As Worksheet
+        
+    Set ws = ThisWorkbook.Worksheets(Install_InSheet)
+    
+    Set_MainTable ws
+    
+    If ws Is Nothing Then GoTo CleanExit
+
+    Dim i As Long
+    
+    On Error Resume Next
+    
+    ws.Unprotect Password:=PASSWORD_PROTECT
+    
+    For i = ws.Shapes.Count To 1 Step -1
+        If ws.Shapes(i).Name = "BTN_DelRow" Then ws.Shapes(i).Delete
+    Next i
+    
+    Dim btn As Button
+    
+    For Each btn In ws.Buttons
+        If btn.Name = "BTN_DelRow" Then btn.Delete
+    Next btn
+    
+    On Error GoTo 0
+
+    Dim loMain As ListObject
+    
+    Set loMain = ws.ListObjects(MainTable)
+    
+    If loMain Is Nothing Then GoTo CleanExit
+
+    Move_DelButton ws, loMain
+    RunSheetMacro "Set_SheetVisibility", ws, MainTable
+    
+    Update_Protection_BANK ws
+
+CleanExit:
+    Application.ScreenUpdating = prevScreen
+    Application.EnableEvents = prevEvents
+    
+    Update_Protection_BANK ws
+    
+End Sub
+
+
+
+' ==============================================================================================================================================
+' ------------------------------------------------------------- DELETE ROW: Button Handler -----------------------------------------------------
+' ==============================================================================================================================================
+
+' - Generic Delete Row Button handler.
+' - Usable from any Sheet.
+Public Sub Del_Row()
+
+    Dim prevEvents As Boolean, prevScreen As Boolean, prevCalc As XlCalculation
+    
+    prevEvents = Application.EnableEvents
+    prevScreen = Application.ScreenUpdating
+    prevCalc = Application.Calculation
+
+    On Error GoTo CleanExit
+    
+    Application.EnableEvents = False
+    Application.ScreenUpdating = False
+    Application.Calculation = xlCalculationManual
+
+    Dim ws As Worksheet
+    
+    Set ws = BTN_Read_Sheet(Nothing)
+
+    If ws Is Nothing Then GoTo CleanExit
+
+    Dim loMain As ListObject, lo2025 As ListObject, lo2026 As ListObject
+    
+    If Not BTN_Assign_AllTables(ws, loMain, lo2025, lo2026) Then
+        Debug.Print "[Del_Row] Missing one or more tables on sheet: " & ws.Name
+        GoTo CleanExit
+    End If
+    
+    Dim inTbl As Range
+    Dim rowRange As Range
+    Dim tblIndex As Long
+    Dim rowsToDelete As Collection
+    
+    Set inTbl = Intersect(Selection, loMain.DataBodyRange)
+    
+    If inTbl Is Nothing Then
+        MsgBox "Por favor seleccione 1 o más celdas dentro de la tabla."
+        Exit Sub
+    End If
+    
+    Set rowsToDelete = New Collection
+    
+    Dim containsRow7 As Boolean
+    
+    For Each rowRange In inTbl.Rows
+        If rowRange.Row = 7 Then
+            containsRow7 = True
+        Else
+            tblIndex = rowRange.Row - loMain.HeaderRowRange.Row
+            rowsToDelete.Add tblIndex, CStr(tblIndex)
+        End If
+    Next rowRange
+
+    On Error GoTo 0
+    
+    If containsRow7 Then
+        MsgBox "La Fila 7 no puede ser eliminada. Ajuste su selección."
+        Exit Sub
+    End If
+
+    If rowsToDelete.Count = 0 Then
+        MsgBox "No se identificaron filas de la Tabla para eliminar."
+        Exit Sub
+    End If
+    
+    ws.Unprotect Password:=PASSWORD_PROTECT
+    
+    Dim i As Long
+    Dim deletedCount As Long
+
+    For i = rowsToDelete.Count To 1 Step -1
+        tblIndex = rowsToDelete(i)
+
+        If tblIndex >= 1 And tblIndex <= loMain.ListRows.Count Then
+            loMain.ListRows(tblIndex).Delete
+            deletedCount = deletedCount + 1
+        End If
+    Next i
+    
+    Sync_Delete_MainRows_ToYearTables ws
+    RunSheetMacro "Set_SheetVisibility", ws, loMain.Name
+    RunSheetMacro "Refresh_Snapshot", ws, loMain.Name
+    Move_DelButton ws, loMain
+    
+    Update_Protection_BANK ws
+    
+CleanExit:
+    Application.Calculation = prevCalc
+    Application.ScreenUpdating = prevScreen
+    Application.EnableEvents = prevEvents
+    
+    Update_Protection_BANK ws
+    
+End Sub
+
+
+
+' ==============================================================================================================================================
+' ------------------------------------------------------------- DELETE ROW: Button Helpers -----------------------------------------------------
+' ==============================================================================================================================================
+
+' - Creates or re-creates the Delete Row Button.
+' - Position: Specific Row in Column B.
+Public Sub Place_DelButtonAtRow(ByVal targetRow As Long, ws As Worksheet)
+
+    Dim t As Range: Set t = ws.Range("B" & targetRow)
+
+    If Check_ShapeExists("BTN_DelRow", ws) Then
+        With ws.Shapes("BTN_DelRow")
+            If .TopLeftCell.Address = t.Address Then
+                .OnAction = "Del_Row"
+                .Placement = xlMoveAndSize
+                .ZOrder msoBringToFront
+                .Locked = True
+                
+                On Error Resume Next
+                
+                .Adjustments.Item(1) = 0.3
+                
+                On Error GoTo 0
+                
+                .Fill.Visible = msoTrue
+                .Fill.ForeColor.RGB = RGB(192, 0, 0)
+                .Line.Visible = msoFalse
+                .TextFrame2.TextRange.Text = "-"
+                .TextFrame2.VerticalAnchor = msoAnchorMiddle
+                .TextFrame2.TextRange.ParagraphFormat.Alignment = msoAlignCenter
+                
+                With .TextFrame2.TextRange.Font
+                    .Bold = msoTrue
+                    .Fill.ForeColor.RGB = RGB(255, 255, 255)
+                    .Size = 11
+                End With
+                Exit Sub
+            End If
+        End With
+    End If
+
+    On Error Resume Next
+    
+    Dim shp As Shape
+    Dim btn As Button
+    
+    For Each shp In ws.Shapes
+        If shp.Name = "BTN_DelRow" Then shp.Delete
+    Next shp
+    
+    For Each btn In ws.Buttons
+        If btn.Name = "BTN_DelRow" Then btn.Delete
+    Next btn
+    
+    On Error GoTo 0
+
+    Dim s As Shape
+    
+    Set s = ws.Shapes.AddShape(Type:=msoShapeRoundedRectangle, Left:=(t.Left + t.width - (t.width / 2 - 3)), Top:=t.Top, width:=t.width / 2 - 3, height:=t.height)
+    
+    With s
+        .Name = "BTN_DelRow"
+        .OnAction = "Del_Row"
+        .Placement = xlMoveAndSize
+        .ZOrder msoBringToFront
+        .Locked = True
+
+        On Error Resume Next
+        
+        .Adjustments.Item(1) = 0.3
+        
+        On Error GoTo 0
+        
+        .Fill.Visible = msoTrue
+        .Fill.ForeColor.RGB = RGB(192, 0, 0)
+        .Line.Visible = msoFalse
+
+        .TextFrame2.TextRange.Text = "-"
+        .TextFrame2.VerticalAnchor = msoAnchorMiddle
+        .TextFrame2.TextRange.ParagraphFormat.Alignment = msoAlignCenter
+        
+        With .TextFrame2.TextRange.Font
+            .Bold = msoTrue
+            .Fill.ForeColor.RGB = RGB(255, 255, 255)
+            .Size = 11
+        End With
+        
+        On Error Resume Next
+        
+        .TextFrame.Characters.Font.Bold = True
+        .TextFrame.Characters.Font.Color = vbWhite
+        
+        On Error GoTo 0
+    End With
+    
+End Sub
+
+
+' - Checks that the Delete Row Button sits at the right place.
+' - Position: Last Row + 2 in Column B.
+Public Sub Check_DelButtonPosition(ws As Worksheet, ByVal lo As ListObject)
+    
+    On Error Resume Next
+    
+    On Error GoTo 0
+    
+    If lo Is Nothing Then Exit Sub
+
+    Dim lastDataRow As Long
+    Dim btnRow As Long
+    
+    lastDataRow = Find_LastTableRow(lo)
+    btnRow = lastDataRow + 2
+
+    If Check_ShapeExists("BTN_DelRow", ws) Then
+        With ws.Shapes("BTN_DelRow")
+            If .TopLeftCell.Row <> btnRow Or .TopLeftCell.Column <> 2 Then
+                .Top = ws.Cells(btnRow, 2).Top
+                .Left = ws.Cells(btnRow, 2).Left
+                .width = ws.Cells(btnRow, 2).width / 2 - 3
+                .height = ws.Cells(btnRow, 2).height
+            End If
+        End With
+    Else
+        Place_DelButtonAtRow btnRow, ws
+    End If
+    
+End Sub
+
+
+' - Moves and resizes "BTN_DelRow".
+' - Position: Cell B:(Last Row + 2)
+Public Sub Move_DelButton(ByVal ws As Worksheet, ByVal loMain As ListObject)
+
+    On Error GoTo SafeExit
+    
+    Dim lastDataRow As Long, btnRow As Long
+    Dim targetCell As Range
+    Dim shp As Shape
+    
+    lastDataRow = Find_LastTableRow(loMain)
+    btnRow = lastDataRow + 2
+    
+    Set targetCell = ws.Cells(btnRow, 2)
+
+    On Error Resume Next
+    
+    Set shp = ws.Shapes("BTN_DelRow")
+    
+    On Error GoTo 0
+
+    If Not shp Is Nothing Then
+        With shp
+            If .TopLeftCell.Row <> btnRow Or .TopLeftCell.Column <> 2 _
+               Or .width <> targetCell.width / 2 - 3 Or .height <> targetCell.height Then
+                .Top = targetCell.Top
+                .Left = targetCell.Left
+                .width = targetCell.width / 2 - 3
+                .height = targetCell.height
+                .ZOrder msoBringToFront
+            End If
+        End With
+    Else
+        Set shp = ws.Shapes.AddShape(Type:=msoShapeRoundedRectangle, Left:=(targetCell.Left + targetCell.width - (targetCell.width / 2 - 3)), Top:=targetCell.Top, width:=targetCell.width / 2 - 3, height:=targetCell.height)
+    
+        With shp
+            .Name = "BTN_DelRow"
+            .OnAction = "Del_Row"
+            .Placement = xlMoveAndSize
+            .ZOrder msoBringToFront
+            .Locked = True
+        
+            On Error Resume Next
+        
+            .Adjustments.Item(1) = 0.3
+            
+            On Error GoTo 0
+            
+            .Fill.Visible = msoTrue
+            .Fill.ForeColor.RGB = RGB(192, 0, 0)
+            .Line.Visible = msoFalse
+            .TextFrame2.TextRange.Text = "-"
+            .TextFrame2.VerticalAnchor = msoAnchorMiddle
+            .TextFrame2.TextRange.ParagraphFormat.Alignment = msoAlignCenter
+            
+            With .TextFrame2.TextRange.Font
+                .Bold = msoTrue
+                .Fill.ForeColor.RGB = RGB(255, 255, 255)
+                .Size = 11
+            End With
+        End With
+    End If
+    
+SafeExit:
+
+End Sub
