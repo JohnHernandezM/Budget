@@ -1,9 +1,9 @@
-Public Function BTN_Read_Sheet(ByVal fallback As Worksheet) As Worksheet
-    If Not ActiveSheet Is Nothing Then
-        If TypeOf ActiveSheet Is Worksheet Then
-            Set BTN_Read_Sheet = ActiveSheet
-            Exit Function
-        End If
+Public Function Find_LastTableRow(ByVal lo As ListObject) As Long
+    If lo Is Nothing Then
+        Find_LastTableRow = 0
+    ElseIf lo.DataBodyRange Is Nothing Then
+        Find_LastTableRow = lo.HeaderRowRange.Row + 1
+    Else
+        Find_LastTableRow = lo.DataBodyRange.Rows(lo.DataBodyRange.Rows.Count).Row
     End If
-    Set BTN_Read_Sheet = fallback
 End Function
