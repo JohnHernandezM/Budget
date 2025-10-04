@@ -1,34 +1,55 @@
 Option Explicit
 
 ' ==============================================================================================================================================
-' ------------------------------------------------------------- DECLARATIONS -------------------------------------------------------------------
+' ----------------------------------------------------------------- LABELS ---------------------------------------------------------------------
 ' ==============================================================================================================================================
 
-' --------
-' PASSWORD
-' --------
+' ------------------------------------------------------------------------------------------------ Password
+Public Const PASSWORD_PROTECT               As String = "jh"
 
-Public Const PASSWORD_PROTECT As String = "jh"
 
-' ----
-' MAIN
-' ----
+' ------------------------------------------------------------------------------------------------ Worksheet: BANKING
+Public Const LBL_col_CUOTAS                 As String = "CUOTAS"
+Public Const LBL_col_M                      As String = "[ M ]"
+Public Const LBL_col_A                      As String = "[ A ]"
 
-Public MainTable                    As String
-Public Install_InSheet              As String
 
-' ------
-' LOCATE
-' ------
+' ------------------------------------------------------------------------------------------------ Worksheet: DATA
+Public Const LBL_lo_DATA_BANK_LOGO          As String = "DATA_BANK_LOGO"
 
-Public Const Col_CUOTAS             As String = "CUOTAS"
-Public Const Col_M                  As String = "[ M ]"
-Public Const Col_A                  As String = "[ A ]"
 
-' ------
-' COLORS
-' ------
+' ------------------------------------------------------------------------------------------------ Worksheet: +
+Public Const LBL_rng_BANK_NAME              As String = "C2"
+Public Const LBL_rng_TAB_COLOR              As String = "C6"
 
+
+
+' ==============================================================================================================================================
+' ----------------------------------------------------------------- DECLARATIONS ---------------------------------------------------------------
+' ==============================================================================================================================================
+
+' ------------------------------------------------------------------------------------------------ Worksheet: +
+Public Const col_DATA_BANK_LOGO_NAME        As Long = 1
+Public Const col_DATA_BANK_LOGO_TAB         As Long = 3
+
+
+' ------------------------------------------------------------------------------------------------ General
+Public MainTable                            As String
+Public Install_InSheet                      As String
+
+
+Public MONTHS                               As Variant
+
+Public prevMainCount                        As Long
+Public lastVisibilityTarget                 As Long
+Public lastKnownListRowsCount               As Long
+
+Public prevMainSigs                         As Collection
+
+Public SIG_DELIM                            As String
+
+
+' ------------------------------------------------------------------------------------------------ Colors
 ' #Gray: No Checkboxs
 Public Const R_NoCheckbox_Fill      As Long = 217
 Public Const G_NoCheckbox_Fill      As Long = 217
@@ -59,25 +80,43 @@ Public Const R_IJ_FirstRow_Fill     As Long = 193
 Public Const G_IJ_FirstRow_Fill     As Long = 240
 Public Const B_IJ_FirstRow_Fill     As Long = 200
 
-' ---------
-' VARIABLES
-' ---------
-
-Public MONTHS                       As Variant
-
-Public prevMainCount                As Long
-Public lastVisibilityTarget         As Long
-Public lastKnownListRowsCount       As Long
-
-Public prevMainSigs                 As Collection
-
-Public SIG_DELIM                    As String
-
 
 
 ' ==============================================================================================================================================
-' ------------------------------------------------------------- FUNCTIONS ----------------------------------------------------------------------
+' ----------------------------------------------------------------- FUNCTIONS ------------------------------------------------------------------
 ' ==============================================================================================================================================
+
+' - Locates the Table by name, scanning the Workbook.
+' - Returns Nothing if not found.
+Public Function Find_BankTable(ByVal tableName As String) As ListObject
+    Dim ws As Worksheet
+    Dim lo As ListObject
+
+    For Each ws In ThisWorkbook.Worksheets
+        On Error Resume Next
+        Set lo = Nothing
+        Set lo = ws.ListObjects(tableName)
+        On Error GoTo 0
+        If Not lo Is Nothing Then
+            Set Find_BankTable = lo
+            Exit Function
+        End If
+    Next ws
+
+    ' Optional fallback: try workbook Name "Data_Bank_Logo[#All]" if it exists.
+    On Error Resume Next
+    Dim nm As Name
+    Set nm = ThisWorkbook.Names(tableName & "[#All]")
+    If Not nm Is Nothing Then
+        If Not nm.RefersToRange Is Nothing Then
+            If Not nm.RefersToRange.ListObject Is Nothing Then
+                Set Find_BankTable = nm.RefersToRange.ListObject
+            End If
+        End If
+    End If
+    On Error GoTo 0
+End Function
+
 
 ' - Creates the Label for the Main Table.
 ' - Bases on the Worksheet name.
@@ -100,7 +139,7 @@ Public Function Set_MainTable(ws As Worksheet) As String
         MainTable = Join(words, "_")
     End If
     
-    SetMainTable = MainTable
+    Set_MainTable = MainTable
     
 End Function
 
@@ -332,7 +371,7 @@ End Function
 
 
 ' ==============================================================================================================================================
-' ------------------------------------------------------------- PROCEDURES ---------------------------------------------------------------------
+' ----------------------------------------------------------------- PROCEDURES -----------------------------------------------------------------
 ' ==============================================================================================================================================
 
 ' - Updates H Column.
@@ -527,7 +566,7 @@ End Sub
 
 
 ' ==============================================================================================================================================
-' ------------------------------------------------------------- CHECKBOXES ---------------------------------------------------------------------
+' ----------------------------------------------------------------- CHECKBOXES -----------------------------------------------------------------
 ' ==============================================================================================================================================
 
 ' - Adds Checkboxes.
@@ -672,7 +711,7 @@ End Sub
 
 
 ' ==============================================================================================================================================
-' ------------------------------------------------------------- SHEET VISIBILITY ---------------------------------------------------------------
+' ----------------------------------------------------------------- SHEET VISIBILITY -----------------------------------------------------------
 ' ==============================================================================================================================================
 
 ' - Builds a Row Signature for the given Row Index.
@@ -805,7 +844,7 @@ End Sub
 
 
 ' ==============================================================================================================================================
-' ------------------------------------------------------------- SHEET PROTECTION ---------------------------------------------------------------
+' ----------------------------------------------------------------- SHEET PROTECTION -----------------------------------------------------------
 ' ==============================================================================================================================================
 
 ' - Handles BANK Sheets protection.
