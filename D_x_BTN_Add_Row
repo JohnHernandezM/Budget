@@ -1,0 +1,334 @@
+Option Explicit
+
+' ==============================================================================================================================================
+' ------------------------------------------------------------- ADD ROW: Button Installer ------------------------------------------------------
+' ==============================================================================================================================================
+
+' - One-time installer.
+' - Selects Sheet from comment.
+Public Sub Install_BTN_AddRow()
+
+    Dim prevEvents As Boolean, prevScreen As Boolean
+    
+    prevEvents = Application.EnableEvents
+    prevScreen = Application.ScreenUpdating
+
+    On Error GoTo CleanExit
+    
+    Application.EnableEvents = False
+    Application.ScreenUpdating = False
+
+    Dim ws As Worksheet
+        
+    Set ws = ThisWorkbook.Worksheets(Install_InSheet)
+    
+    Set_MainTable ws
+    
+    If ws Is Nothing Then GoTo CleanExit
+
+    Dim i As Long
+    
+    On Error Resume Next
+    
+    For i = ws.Shapes.Count To 1 Step -1
+        If ws.Shapes(i).Name = "BTN_AddRow" Then ws.Shapes(i).Delete
+    Next i
+    
+    Dim btn As Button
+    
+    For Each btn In ws.Buttons
+        If btn.Name = "BTN_AddRow" Then btn.Delete
+    Next btn
+    
+    On Error GoTo 0
+
+    Dim loMain As ListObject
+    
+    Set loMain = ws.ListObjects(MainTable)
+    
+    If loMain Is Nothing Then GoTo CleanExit
+
+    Move_AddButton ws, loMain
+    RunSheetMacro "Set_SheetVisibility", ws, MainTable
+
+CleanExit:
+    Application.ScreenUpdating = prevScreen
+    Application.EnableEvents = prevEvents
+    
+End Sub
+
+
+
+' ==============================================================================================================================================
+' ------------------------------------------------------------- ADD ROW: Button Handler --------------------------------------------------------
+' ==============================================================================================================================================
+
+' - Generic Add Row Button handler.
+' - Usable from any Sheet.
+Public Sub Add_Row()
+
+    Dim prevEvents As Boolean, prevScreen As Boolean, prevCalc As XlCalculation
+    
+    prevEvents = Application.EnableEvents
+    prevScreen = Application.ScreenUpdating
+    prevCalc = Application.Calculation
+
+    On Error GoTo CleanExit
+    
+    Application.EnableEvents = False
+    Application.ScreenUpdating = False
+    Application.Calculation = xlCalculationManual
+
+    Dim ws As Worksheet
+    
+    Set ws = BTN_Read_Sheet(Nothing)
+
+    If ws Is Nothing Then GoTo CleanExit
+
+    Dim loMain As ListObject, lo2025 As ListObject, lo2026 As ListObject
+    
+    If Not BTN_Assign_AllTables(ws, loMain, lo2025, lo2026) Then
+        Debug.Print "[Add_Row] Missing one or more tables on sheet: " & ws.Name
+        GoTo CleanExit
+    End If
+
+    Dim rMain As ListRow, rY1 As ListRow, rY2 As ListRow
+    Dim prevMainCount As Long
+    
+    ws.Unprotect Password:=PASSWORD_PROTECT
+    
+    prevMainCount = IIf(loMain.DataBodyRange Is Nothing, 0, loMain.ListRows.Count)
+
+    Set rMain = loMain.ListRows.Add
+    Set rY1 = lo2025.ListRows.Add
+    Set rY2 = lo2026.ListRows.Add
+
+    If prevMainCount >= 1 Then
+        Dim src As Range, dst As Range
+        
+        Set src = loMain.DataBodyRange.Rows(prevMainCount)
+        Set dst = rMain.Range
+        
+        src.Copy
+        dst.PasteSpecial xlPasteFormats
+        Application.CutCopyMode = False
+    End If
+    
+    rY1.Range.ClearFormats
+    rY2.Range.ClearFormats
+
+    RunSheetMacro "Set_SheetVisibility", ws, loMain.Name
+    RunSheetMacro "Refresh_Snapshot", ws, loMain.Name
+    Move_AddButton ws, loMain
+    
+    'NEW
+    Update_Protection_BANK ws
+
+CleanExit:
+    Application.Calculation = prevCalc
+    Application.ScreenUpdating = prevScreen
+    Application.EnableEvents = prevEvents
+    
+    'NEW
+    Update_Protection_BANK ws
+    
+End Sub
+
+
+
+' ==============================================================================================================================================
+' ------------------------------------------------------------- ADD ROW: Button Helpers --------------------------------------------------------
+' ==============================================================================================================================================
+
+' - Creates or re-creates the Add Row Button.
+' - Position: Specific Row in Column B.
+Public Sub Place_AddButtonAtRow(ByVal targetRow As Long, ws As Worksheet)
+
+    Dim t As Range: Set t = ws.Range("B" & targetRow)
+
+    If Check_ShapeExists("BTN_AddRow", ws) Then
+        With ws.Shapes("BTN_AddRow")
+            If .TopLeftCell.Address = t.Address Then
+                .OnAction = "Add_Row"
+                .Placement = xlMoveAndSize
+                .ZOrder msoBringToFront
+                .Locked = True
+                
+                On Error Resume Next
+                
+                .Adjustments.Item(1) = 0.3
+                
+                On Error GoTo 0
+                
+                .Fill.Visible = msoTrue
+                .Fill.ForeColor.RGB = RGB(25, 107, 36)
+                .Line.Visible = msoFalse
+                .TextFrame2.TextRange.Text = "+"
+                .TextFrame2.VerticalAnchor = msoAnchorMiddle
+                .TextFrame2.TextRange.ParagraphFormat.Alignment = msoAlignCenter
+                
+                With .TextFrame2.TextRange.Font
+                    .Bold = msoTrue
+                    .Fill.ForeColor.RGB = RGB(255, 255, 255)
+                    .Size = 11
+                End With
+                Exit Sub
+            End If
+        End With
+    End If
+
+    On Error Resume Next
+    
+    Dim shp As Shape
+    Dim btn As Button
+    
+    For Each shp In ws.Shapes
+        If shp.Name = "BTN_AddRow" Then shp.Delete
+    Next shp
+    
+    For Each btn In ws.Buttons
+        If btn.Name = "BTN_AddRow" Then btn.Delete
+    Next btn
+    
+    On Error GoTo 0
+
+    Dim s As Shape
+    
+    Set s = ws.Shapes.AddShape(Type:=msoShapeRoundedRectangle, Left:=t.Left, Top:=t.Top, width:=t.width / 2 - 3, height:=t.height)
+    
+    With s
+        .Name = "BTN_AddRow"
+        .OnAction = "Add_Row"
+        .Placement = xlMoveAndSize
+        .ZOrder msoBringToFront
+        .Locked = True
+
+        On Error Resume Next
+        
+        .Adjustments.Item(1) = 0.3
+        
+        On Error GoTo 0
+        
+        .Fill.Visible = msoTrue
+        .Fill.ForeColor.RGB = RGB(25, 107, 36)
+        .Line.Visible = msoFalse
+
+        .TextFrame2.TextRange.Text = "+"
+        .TextFrame2.VerticalAnchor = msoAnchorMiddle
+        .TextFrame2.TextRange.ParagraphFormat.Alignment = msoAlignCenter
+        
+        With .TextFrame2.TextRange.Font
+            .Bold = msoTrue
+            .Fill.ForeColor.RGB = RGB(255, 255, 255)
+            .Size = 11
+        End With
+        
+        On Error Resume Next
+        
+        .TextFrame.Characters.Font.Bold = True
+        .TextFrame.Characters.Font.Color = vbWhite
+        
+        On Error GoTo 0
+    End With
+    
+End Sub
+
+
+' - Checks that the Add Row Button sits at the right place.
+' - Position: Last Row + 2 in Column B.
+Public Sub Check_AddButtonPosition(ws As Worksheet, ByVal lo As ListObject)
+    
+    On Error Resume Next
+    
+    On Error GoTo 0
+    
+    If lo Is Nothing Then Exit Sub
+
+    Dim lastDataRow As Long
+    Dim btnRow As Long
+    
+    lastDataRow = Find_LastTableRow(lo)
+    btnRow = lastDataRow + 2
+
+    If Check_ShapeExists("BTN_AddRow", ws) Then
+        With ws.Shapes("BTN_AddRow")
+            If .TopLeftCell.Row <> btnRow Or .TopLeftCell.Column <> 2 Then
+                .Top = ws.Cells(btnRow, 2).Top
+                .Left = ws.Cells(btnRow, 2).Left
+                .width = ws.Cells(btnRow, 2).width / 2 - 3
+                .height = ws.Cells(btnRow, 2).height
+            End If
+        End With
+    Else
+        Place_AddButtonAtRow btnRow, ws
+    End If
+    
+End Sub
+
+
+' - Moves and resizes "BTN_AddRow".
+' - Position: Cell B:(Last Row + 2)
+Public Sub Move_AddButton(ByVal ws As Worksheet, ByVal loMain As ListObject)
+
+    On Error GoTo SafeExit
+    
+    Dim lastDataRow As Long, btnRow As Long
+    Dim targetCell As Range
+    Dim shp As Shape
+    
+    lastDataRow = Find_LastTableRow(loMain)
+    btnRow = lastDataRow + 2
+    
+    Set targetCell = ws.Cells(btnRow, 2)
+
+    On Error Resume Next
+    
+    Set shp = ws.Shapes("BTN_AddRow")
+    
+    On Error GoTo 0
+
+    If Not shp Is Nothing Then
+        With shp
+            If .TopLeftCell.Row <> btnRow Or .TopLeftCell.Column <> 2 _
+               Or .width <> targetCell.width / 2 - 3 Or .height <> targetCell.height Then
+                .Top = targetCell.Top
+                .Left = targetCell.Left
+                .width = targetCell.width / 2 - 3
+                .height = targetCell.height
+                .ZOrder msoBringToFront
+            End If
+        End With
+    Else
+        Set shp = ws.Shapes.AddShape(Type:=msoShapeRoundedRectangle, Left:=targetCell.Left, Top:=targetCell.Top, width:=targetCell.width / 2 - 3, height:=targetCell.height)
+    
+        With shp
+            .Name = "BTN_AddRow"
+            .OnAction = "Add_Row"
+            .Placement = xlMoveAndSize
+            .ZOrder msoBringToFront
+            .Locked = True
+        
+            On Error Resume Next
+        
+            .Adjustments.Item(1) = 0.3
+            
+            On Error GoTo 0
+            
+            .Fill.Visible = msoTrue
+            .Fill.ForeColor.RGB = RGB(25, 107, 36)
+            .Line.Visible = msoFalse
+            .TextFrame2.TextRange.Text = "+"
+            .TextFrame2.VerticalAnchor = msoAnchorMiddle
+            .TextFrame2.TextRange.ParagraphFormat.Alignment = msoAlignCenter
+            
+            With .TextFrame2.TextRange.Font
+                .Bold = msoTrue
+                .Fill.ForeColor.RGB = RGB(255, 255, 255)
+                .Size = 11
+            End With
+        End With
+    End If
+    
+SafeExit:
+
+End Sub

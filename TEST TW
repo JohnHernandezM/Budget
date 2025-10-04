@@ -1,4 +1,0 @@
-Private Sub Workbook_Open()
-    ' Apply protection
-    UpdateGaliciaProtection
-End Sub
