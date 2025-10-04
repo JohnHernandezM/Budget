@@ -1,9 +1,17 @@
-Public Function Find_LastTableRow(ByVal lo As ListObject) As Long
-    If lo Is Nothing Then
-        Find_LastTableRow = 0
-    ElseIf lo.DataBodyRange Is Nothing Then
-        Find_LastTableRow = lo.HeaderRowRange.Row + 1
-    Else
-        Find_LastTableRow = lo.DataBodyRange.Rows(lo.DataBodyRange.Rows.Count).Row
+Public Sub RunSheetMacro(ByVal publicProc As String, ParamArray args() As Variant)
+    Dim m As String: m = "'" & ThisWorkbook.Name & "'!" & publicProc
+    On Error Resume Next
+    Select Case UBound(args)
+        Case -1: Application.Run m
+        Case 0:  Application.Run m, args(0)
+        Case 1:  Application.Run m, args(0), args(1)
+        Case Else
+            ' Pass array as a single argument to preserve all params
+            Application.Run m, args
+    End Select
+    If Err.Number <> 0 Then
+        Debug.Print "[MAIN] Failed Application.Run -> "; m; " | Err:"; Err.Number; " "; Err.Description
+        Err.Clear
     End If
-End Function
+    On Error GoTo 0
+End Sub
