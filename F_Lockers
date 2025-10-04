@@ -1,0 +1,128 @@
+Option Explicit
+
+' ==============================================================================================================================================
+' --------------------------------------------------------------- LOCKER: + --------------------------------------------------------------------
+' ==============================================================================================================================================
+
+Public Sub LockPlusSheet()
+
+    Dim ws As Worksheet
+    Set ws = ThisWorkbook.Worksheets("+")
+    
+    ' Remove any existing protection first
+    On Error Resume Next
+    ws.Unprotect
+    On Error GoTo 0
+    
+    ' Lock all cells by default
+    ws.Cells.Locked = True
+    
+    ' Unlock the cells that must stay editable
+    ws.Range("C2,C4,C6").Locked = False
+    
+    ' Protect the sheet
+    ws.Protect Password:="jh", _
+               UserInterfaceOnly:=True, _
+               AllowFormattingCells:=False, _
+               AllowFormattingColumns:=False, _
+               AllowFormattingRows:=False, _
+               AllowInsertingColumns:=False, _
+               AllowInsertingRows:=False, _
+               AllowDeletingColumns:=False, _
+               AllowDeletingRows:=False, _
+               AllowSorting:=False, _
+               AllowFiltering:=False, _
+               AllowUsingPivotTables:=False
+    
+    ' Restrict selection to editable cells only
+    ws.EnableSelection = xlUnlockedCells
+    
+End Sub
+
+
+
+' ==============================================================================================================================================
+' --------------------------------------------------------------- LOCKER: Banking Sheets -------------------------------------------------------
+' ==============================================================================================================================================
+
+' - Protects any BANK Sheet.
+Public Sub Update_Protection_BANK(ByVal ws As Worksheet)
+
+    If ws Is Nothing Then Exit Sub
+
+    Application.ScreenUpdating = False
+    Application.EnableEvents = False
+
+    On Error Resume Next
+    
+    ws.Unprotect Password:=PASSWORD_PROTECT
+    
+    On Error GoTo 0
+
+    ws.Cells.Locked = True
+    
+    Dim rowRange As Range
+    Dim cell As Range
+    Dim loMain As ListObject, lo2025 As ListObject, lo2026 As ListObject
+    
+    If Not BTN_Assign_AllTables(ws, loMain, lo2025, lo2026) Then
+        Debug.Print "[Add_Row] Missing one or more tables on sheet: " & ws.Name
+        GoTo CleanUp
+    End If
+
+    If Not loMain Is Nothing Then
+        If Not loMain.DataBodyRange Is Nothing Then
+            Dim rw As Range
+            For Each rw In loMain.DataBodyRange.Rows
+                rw.Worksheet.Range(rw.Worksheet.Cells(rw.Row, "B"), rw.Worksheet.Cells(rw.Row, "G")).Locked = False
+                rw.Worksheet.Cells(rw.Row, "H").Locked = True
+                rw.Worksheet.Range(rw.Worksheet.Cells(rw.Row, "I"), rw.Worksheet.Cells(rw.Row, "J")).Locked = False
+            Next rw
+        End If
+    End If
+
+    If Not lo2025 Is Nothing Then
+        If Not lo2025.DataBodyRange Is Nothing Then
+            For Each rowRange In lo2025.DataBodyRange.Rows
+                For Each cell In ws.Range(ws.Cells(rowRange.Row, "L"), ws.Cells(rowRange.Row, "W"))
+                    If Check_IfCheckbox(ws, cell) Then
+                        cell.Locked = False
+                    Else
+                        cell.Locked = True
+                    End If
+                Next cell
+            Next rowRange
+        End If
+    End If
+
+    If Not lo2026 Is Nothing Then
+        If Not lo2026.DataBodyRange Is Nothing Then
+            For Each rowRange In lo2026.DataBodyRange.Rows
+                For Each cell In ws.Range(ws.Cells(rowRange.Row, "Y"), ws.Cells(rowRange.Row, "AJ"))
+                    If Check_IfCheckbox(ws, cell) Then
+                        cell.Locked = False
+                    Else
+                        cell.Locked = True
+                    End If
+                Next cell
+            Next rowRange
+        End If
+    End If
+
+    On Error Resume Next
+    
+    ws.Protect Password:=PASSWORD_PROTECT, UserInterfaceOnly:=True, _
+               AllowFormattingCells:=False, AllowFormattingColumns:=False, AllowFormattingRows:=False, _
+               AllowInsertingColumns:=False, AllowInsertingRows:=False, _
+               AllowDeletingColumns:=False, AllowDeletingRows:=False, _
+               AllowSorting:=False, AllowFiltering:=False, AllowUsingPivotTables:=False
+               
+    On Error GoTo 0
+
+    ws.EnableSelection = xlUnlockedCells
+
+CleanUp:
+    Application.EnableEvents = True
+    Application.ScreenUpdating = True
+    
+End Sub
