@@ -1,7 +1,12 @@
+' ==============================================================================================================================================
+' --------------------------------------------------------------------- + ----------------------------------------------------------------------
+' ==============================================================================================================================================
+' - Main Sheet.
+' - Adds new Banking Sheet.
+
 Private Sub Worksheet_Change(ByVal Target As Range)
 
     Dim watchCell As Range
-    
     Set watchCell = Me.Range("C2")
     
     If Intersect(Target, watchCell) Is Nothing Then Exit Sub
@@ -43,5 +48,5 @@ Private Sub Worksheet_Change(ByVal Target As Range)
 
 CleanUp:
     Application.EnableEvents = True
+    
 End Sub
-
