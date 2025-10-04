@@ -1,0 +1,857 @@
+Option Explicit
+
+' ==============================================================================================================================================
+' ------------------------------------------------------------- DECLARATIONS -------------------------------------------------------------------
+' ==============================================================================================================================================
+
+' --------
+' PASSWORD
+' --------
+
+Public Const PASSWORD_PROTECT As String = "jh"
+
+' ----
+' MAIN
+' ----
+
+Public MainTable                    As String
+Public Install_InSheet              As String
+
+' ------
+' LOCATE
+' ------
+
+Public Const Col_CUOTAS             As String = "CUOTAS"
+Public Const Col_M                  As String = "[ M ]"
+Public Const Col_A                  As String = "[ A ]"
+
+' ------
+' COLORS
+' ------
+
+' #Gray: No Checkboxs
+Public Const R_NoCheckbox_Fill      As Long = 217
+Public Const G_NoCheckbox_Fill      As Long = 217
+Public Const B_NoCheckbox_Fill      As Long = 217
+
+' #Dark Blue: Table Headers
+Public Const R_Header_Fill          As Long = 0
+Public Const G_Header_Fill          As Long = 32
+Public Const B_Header_Fill          As Long = 96
+
+' #Black: Titles
+Public Const R_Title_Fill           As Long = 0
+Public Const G_Title_Fill           As Long = 0
+Public Const B_Title_Fill           As Long = 0
+
+' #White: Titles Font
+Public Const R_Title_Font           As Long = 255
+Public Const G_Title_Font           As Long = 255
+Public Const B_Title_Font           As Long = 255
+
+' #Green: [M][A] Headers
+Public Const R_IJ_Header_Fill       As Long = 60
+Public Const G_IJ_Header_Fill       As Long = 125
+Public Const B_IJ_Header_Fill       As Long = 34
+
+' #Dark Green: [M][A] Rows
+Public Const R_IJ_FirstRow_Fill     As Long = 193
+Public Const G_IJ_FirstRow_Fill     As Long = 240
+Public Const B_IJ_FirstRow_Fill     As Long = 200
+
+' ---------
+' VARIABLES
+' ---------
+
+Public MONTHS                       As Variant
+
+Public prevMainCount                As Long
+Public lastVisibilityTarget         As Long
+Public lastKnownListRowsCount       As Long
+
+Public prevMainSigs                 As Collection
+
+Public SIG_DELIM                    As String
+
+
+
+' ==============================================================================================================================================
+' ------------------------------------------------------------- FUNCTIONS ----------------------------------------------------------------------
+' ==============================================================================================================================================
+
+' - Creates the Label for the Main Table.
+' - Bases on the Worksheet name.
+Public Function Set_MainTable(ws As Worksheet) As String
+
+    Dim wsName As String
+    Dim words() As String
+    Dim i As Long
+    
+    wsName = ws.Name
+    
+    words = Split(wsName, " ")
+    
+    If UBound(words) = 0 Then
+        MainTable = UCase(words(0))
+    Else
+        For i = LBound(words) To UBound(words)
+            words(i) = UCase(words(i))
+        Next i
+        MainTable = Join(words, "_")
+    End If
+    
+    SetMainTable = MainTable
+    
+End Function
+
+
+' - Computes the Last Row of a Table.
+' - Falls back to Header + 1 if empty.
+Public Function Find_LastTableRow(ByVal lo As ListObject) As Long
+
+    If lo Is Nothing Then
+        Find_LastTableRow = 1
+    ElseIf lo.DataBodyRange Is Nothing Then
+        Find_LastTableRow = lo.HeaderRowRange.Row + 1
+    Else
+        Find_LastTableRow = lo.DataBodyRange.Rows(lo.DataBodyRange.Rows.Count).Row
+    End If
+    
+End Function
+
+
+' - Validates numeric input.
+' - Only positive numbers allowed.
+Public Function Validate_InputNumber(ByVal v As Variant) As Boolean
+
+    If IsEmpty(v) Then
+        Validate_InputNumber = False
+        Exit Function
+    End If
+    
+    If IsNumeric(v) Then
+        Validate_InputNumber = (CDbl(v) > 0)
+    Else
+        Dim s As String: s = CStr(v)
+        If InStr(s, " ") > 0 Then
+            Validate_InputNumber = False
+        ElseIf Not IsNumeric(s) Then
+            Validate_InputNumber = False
+        Else
+            Validate_InputNumber = (CDbl(s) > 0)
+        End If
+    End If
+    
+End Function
+
+
+' - Checks if a Shape exists.
+' - Searches is made by name.
+Public Function Check_ShapeExists(ByVal nm As String, ws As Worksheet) As Boolean
+
+    Dim shp As Shape
+    
+    For Each shp In ws.Shapes
+        If shp.Name = nm Then Check_ShapeExists = True: Exit Function
+    Next
+    
+End Function
+
+
+' - Checks if a value is empty.
+Public Function Check_IfEmpty(v As Variant) As Boolean
+    Check_IfEmpty = (VarType(v) = vbEmpty Or (VarType(v) = vbString And Len(Trim$(CStr(v))) = 0))
+End Function
+
+
+' - Gets Month index based on Month name.
+Public Function Get_MonthIndex(ByVal monthName As String) As Long
+
+    Dim i As Long
+    Dim m As String: m = Trim$(monthName)
+    
+    Get_MonthIndex = 0
+    
+    For i = LBound(MONTHS) To UBound(MONTHS)
+        If StrComp(m, MONTHS(i), vbTextCompare) = 0 Then
+            Get_MonthIndex = i + 1
+            Exit For
+        End If
+    Next i
+    
+End Function
+
+
+' - Gets Month Column based on Month index.
+Public Function Get_MonthColumn(lo As ListObject, Get_MonthIndex As Long) As ListColumn
+
+    Dim header As String
+    header = MONTHS(Get_MonthIndex - 1)
+    Set Get_MonthColumn = lo.ListColumns(header)
+    
+End Function
+
+
+' - Sets Table depending on the Year.
+Public Function Set_TableForYear(ws As Worksheet, ByVal y As Long) As ListObject
+
+    On Error Resume Next
+    
+    If y = 2025 Or y = 2026 Then
+        Dim tableName As String
+        
+        tableName = MainTable & "_" & y
+        
+        Set Set_TableForYear = ws.ListObjects(tableName)
+    Else
+        Set Set_TableForYear = Nothing
+    End If
+    
+    On Error GoTo 0
+    
+End Function
+
+
+' Checks if Checkbox present in Cell.
+Public Function Check_IfCheckbox(ByVal ws As Worksheet, ByVal rng As Range) As Boolean
+
+    Dim shp As Shape
+    Dim ole As OLEObject
+    Dim tLeft As Range
+    Dim found As Boolean: found = False
+
+    For Each shp In ws.Shapes
+        On Error Resume Next
+        
+        Set tLeft = Nothing
+        Set tLeft = shp.TopLeftCell
+        
+        On Error GoTo 0
+        
+        If Not tLeft Is Nothing Then
+            If tLeft.Address = rng.Address Then
+                On Error Resume Next
+                
+                If shp.FormControlType = xlCheckBox Then
+                    found = True
+                    Exit For
+                End If
+                
+                On Error GoTo 0
+                
+                If InStr(1, shp.Name, "CheckBox", vbTextCompare) > 0 Then
+                    found = True
+                    Exit For
+                End If
+            End If
+        End If
+    Next shp
+
+    If found Then
+        Check_IfCheckbox = True
+        Exit Function
+    End If
+
+    For Each ole In ws.OLEObjects
+        On Error Resume Next
+        
+        Set tLeft = Nothing
+        Set tLeft = ole.TopLeftCell
+        
+        On Error GoTo 0
+        
+        If Not tLeft Is Nothing Then
+            If tLeft.Address = rng.Address Then
+                If InStr(1, ole.progID, "CheckBox", vbTextCompare) > 0 Then
+                    found = True
+                    Exit For
+                End If
+            End If
+        End If
+    Next ole
+
+    Check_IfCheckbox = found
+    
+End Function
+
+
+' - Returns the Sheet that invoked the macro.
+' - Button click makes it ActiveSheet.
+Public Function BTN_Read_Sheet(ByVal fallback As Worksheet) As Worksheet
+
+    If Not ActiveSheet Is Nothing Then
+        Set BTN_Read_Sheet = ActiveSheet
+    Else
+        Set BTN_Read_Sheet = fallback
+    End If
+    
+End Function
+
+
+' - Builds Table Names based on the Sheet Name.
+Public Function BTN_Name_MainTable(ByVal ws As Worksheet) As String
+    Set_MainTable ws
+    BTN_Name_MainTable = MainTable
+End Function
+
+
+' - 2025: Builds Year Table Names based on the Sheet Name.
+Public Function BTN_YearTable_2025(ByVal ws As Worksheet) As String
+    BTN_YearTable_2025 = BTN_Name_MainTable(ws) & "_2025"
+End Function
+
+
+' - 2026: Builds Year Table Names based on the Sheet Name.
+Public Function BTN_YearTable_2026(ByVal ws As Worksheet) As String
+    BTN_YearTable_2026 = BTN_Name_MainTable(ws) & "_2026"
+End Function
+
+
+' - Resolves the 3 ListObjects on a given Sheet.
+' - Returns True if all found.
+Public Function BTN_Assign_AllTables(ByVal ws As Worksheet, ByRef loMain As ListObject, ByRef loY1 As ListObject, ByRef loY2 As ListObject) As Boolean
+
+    Dim nmMain As String, nmY1 As String, nmY2 As String
+    
+    nmMain = BTN_Name_MainTable(ws)
+    nmY1 = BTN_YearTable_2025(ws)
+    nmY2 = BTN_YearTable_2026(ws)
+
+    On Error Resume Next
+    
+    Set loMain = ws.ListObjects(nmMain)
+    Set loY1 = ws.ListObjects(nmY1)
+    Set loY2 = ws.ListObjects(nmY2)
+    
+    On Error GoTo 0
+
+    BTN_Assign_AllTables = Not (loMain Is Nothing Or loY1 Is Nothing Or loY2 Is Nothing)
+    
+End Function
+
+
+
+' ==============================================================================================================================================
+' ------------------------------------------------------------- PROCEDURES ---------------------------------------------------------------------
+' ==============================================================================================================================================
+
+' - Updates H Column.
+' - Requires F and G.
+Public Sub Update_ColumnH(ByVal lo As ListObject, ByVal rowIdx As Long, ByVal idxF As Long, ByVal idxG As Long, ByVal idxH As Long)
+    
+    On Error GoTo SafeExit
+
+    Dim fVal As Variant, gVal As Variant
+    Dim hCell As Range
+
+    fVal = lo.ListColumns(idxF).DataBodyRange.Cells(rowIdx, 1).Value
+    gVal = lo.ListColumns(idxG).DataBodyRange.Cells(rowIdx, 1).Value
+    
+    Set hCell = lo.ListColumns(idxH).DataBodyRange.Cells(rowIdx, 1)
+
+    If Len(fVal) > 0 And Len(gVal) > 0 And IsNumeric(fVal) And IsNumeric(gVal) Then
+        If CDbl(fVal) > 0 And CDbl(gVal) > 0 Then
+            hCell.Value = CDbl(fVal) / CDbl(gVal)
+            hCell.NumberFormat = "$ #,##0"
+        Else
+            hCell.ClearContents
+        End If
+    Else
+        hCell.ClearContents
+    End If
+
+SafeExit:
+
+End Sub
+
+
+' - Looks for Year Tables.
+' - Gives instruction to clear a Row.
+Public Sub Clear_Row(ws As Worksheet, ByVal loRowIndex As Long)
+    
+    Dim lo As ListObject
+    
+    For Each lo In ws.ListObjects
+        If IsNumeric(Right(lo.Name, 1)) Then
+            Clear_RowInTable ws, lo.Name, loRowIndex
+        End If
+    Next lo
+    
+End Sub
+
+
+' - Clears indicated Row in the Year Tables.
+' - # of Years Tables = # of times function needs to be called.
+Public Sub Clear_RowInTable(ws As Worksheet, tableName As String, ByVal loRowIndex As Long)
+
+    Dim lo As ListObject
+    
+    On Error Resume Next
+    
+    Set lo = ws.ListObjects(tableName)
+    
+    On Error GoTo 0
+    
+    If lo Is Nothing Then Exit Sub
+    If lo.DataBodyRange Is Nothing Then Exit Sub
+    If loRowIndex < 1 Or loRowIndex > lo.ListRows.Count Then Exit Sub
+
+    Dim rowRng As Range
+    Dim i As Long
+    
+    Set rowRng = lo.DataBodyRange.Rows(loRowIndex)
+
+    rowRng.ClearContents
+    rowRng.NumberFormat = "General"
+    rowRng.Interior.Pattern = xlPatternNone
+    
+    For i = ws.Shapes.Count To 1 Step -1
+        Dim nm As String
+        nm = ws.Shapes(i).Name
+        
+        If nm Like "cb_*_r" & CStr(loRowIndex) Then
+            ws.Shapes(i).Delete
+        End If
+    Next i
+    
+End Sub
+
+
+' - Deletes a specific Row from the Year Tables.
+' - Purges Checkboxes on that Row.
+Public Sub Delete_RowInYearTables(ws As Worksheet, ByVal rowIdx As Long)
+    
+    Dim lo As ListObject
+    
+    For Each lo In ws.ListObjects
+        On Error GoTo 0
+        
+        If Not lo Is Nothing Then
+            If lo.ListRows.Count >= rowIdx Then
+                Dim i As Long
+                
+                For i = ws.Shapes.Count To 1 Step -1
+                    Dim nm As String
+                    nm = ws.Shapes(i).Name
+                    
+                    If nm Like "cb_*_r" & CStr(rowIdx) Then
+                        ws.Shapes(i).Delete
+                    End If
+                Next i
+                
+                lo.ListRows(rowIdx).Delete
+            End If
+        End If
+    Next lo
+    
+End Sub
+
+
+' - Deletes bulk selected Main Rows.
+' - Mirrors action to Year Tables.
+Public Sub Sync_Delete_MainRows_ToYearTables(ws As Worksheet)
+
+    Dim lo As ListObject
+    
+    On Error Resume Next
+    
+    Set lo = ws.ListObjects(MainTable)
+    
+    On Error GoTo 0
+    
+    If lo Is Nothing Then Exit Sub
+
+    Dim currCount As Long
+    
+    currCount = IIf(lo.DataBodyRange Is Nothing, 0, lo.ListRows.Count)
+
+    If prevMainCount = 0 Then
+        Refresh_Snapshot ws, MainTable
+        Exit Sub
+    End If
+
+    If currCount >= prevMainCount Then
+        Refresh_Snapshot ws, MainTable
+        Exit Sub
+    End If
+
+    Dim currSigs() As String
+    Dim i As Long
+    Dim k As Long
+    
+    If currCount > 0 Then
+        ReDim currSigs(1 To currCount)
+        
+        For i = 1 To currCount
+            currSigs(i) = Create_RowSignature(lo, i)
+        Next i
+    Else
+        ReDim currSigs(1 To 1)
+    End If
+
+    Dim deletedIndices As Collection: Set deletedIndices = New Collection
+    Dim p As Long: p = 1
+    Dim c As Long: c = 1
+
+    Do While p <= prevMainCount And c <= currCount
+        If CStr(prevMainSigs(p)) = currSigs(c) Then
+            p = p + 1
+            c = c + 1
+        Else
+            deletedIndices.Add p
+            p = p + 1
+        End If
+    Loop
+    
+    For i = p To prevMainCount
+        deletedIndices.Add i
+    Next i
+
+    If deletedIndices.Count > 0 Then
+        Dim prevEvents As Boolean: prevEvents = Application.EnableEvents
+        
+        Application.EnableEvents = False
+        
+        For k = deletedIndices.Count To 1 Step -1
+            Delete_RowInYearTables ws, deletedIndices(k)
+        Next k
+        
+        Application.EnableEvents = prevEvents
+        Set_SheetVisibility ws, MainTable
+    End If
+
+    Refresh_Snapshot ws, MainTable
+    
+End Sub
+
+
+
+' ==============================================================================================================================================
+' ------------------------------------------------------------- CHECKBOXES ---------------------------------------------------------------------
+' ==============================================================================================================================================
+
+' - Adds Checkboxes.
+' - Names the Checkboxes.
+Public Sub Add_Checkbox(ws As Worksheet, tgt As Range, ByVal y As Long, ByVal m As Long, ByVal rowIdx As Long)
+    
+    Dim cb As CheckBox
+    Dim desiredSide As Single
+    Dim leftPadNudge As Single
+    Dim actualW As Single, actualH As Single
+
+    desiredSide = Application.Min(tgt.width, tgt.height) * 0.8
+    
+    Set cb = ws.CheckBoxes.Add(Left:=tgt.Left, Top:=tgt.Top, width:=desiredSide, height:=desiredSide)
+
+    With cb
+        .Caption = ""
+        .LinkedCell = tgt.Address(RowAbsolute:=True, ColumnAbsolute:=True, External:=False)
+        .Placement = xlMoveAndSize
+        .Name = "cb_" & CStr(y) & "_" & CStr(m) & "_r" & CStr(rowIdx)
+        .PrintObject = False
+    End With
+
+    actualW = cb.width: actualH = cb.height
+    cb.Left = tgt.Left + (tgt.width - actualW) / 2
+    cb.Top = tgt.Top + (tgt.height - actualH) / 2
+
+    leftPadNudge = Application.Max(0, Application.Min(3, tgt.width / 3))
+    cb.Left = cb.Left + leftPadNudge
+
+    tgt.NumberFormat = ";;;"
+    
+End Sub
+
+
+' - Places Checkboxes on the indicated Cells.
+' - Handles Highlighting.
+Public Sub Place_Checkbox(ws As Worksheet, ByVal rowIdx As Long, ByVal startYear As Long, ByVal startMonthIdx As Long, ByVal countN As Long)
+
+    Dim used2025(1 To 12) As Boolean
+    Dim used2026(1 To 12) As Boolean
+    Dim stepIdx As Long
+    
+    For stepIdx = 0 To countN - 1
+        Dim y As Long, m As Long
+        Dim lo As ListObject
+        
+        y = startYear + ((startMonthIdx - 1 + stepIdx) \ 12)
+        m = (((startMonthIdx - 1 + stepIdx) Mod 12) + 1)
+
+        Set lo = Set_TableForYear(ws, y)
+        
+        If lo Is Nothing Then Exit For
+        If lo.DataBodyRange Is Nothing Then Exit For
+        If rowIdx < 1 Or rowIdx > lo.ListRows.Count Then Exit For
+
+        Dim cell As Range
+        
+        Set cell = Get_MonthColumn(lo, m).DataBodyRange.Cells(rowIdx, 1)
+
+        Delete_Checkbox ws, y, m, rowIdx
+        cell.ClearContents
+        
+        Add_Checkbox ws, cell, y, m, rowIdx
+        cell.NumberFormat = ";;;"
+
+        If y = 2025 Then
+            used2025(m) = True
+        ElseIf y = 2026 Then
+            used2026(m) = True
+        End If
+    Next stepIdx
+    
+    For Each lo In ws.ListObjects
+        If IsNumeric(Right$(lo.Name, 1)) Then
+        
+            Dim tableName As String
+    
+            tableName = MainTable & "_" & Right$(lo.Name, 4)
+            
+            If Right$(lo.Name, 4) = 2025 Then
+                Highlight_IfNoCheckbox ws, tableName, rowIdx, used2025
+            ElseIf Right$(lo.Name, 4) = 2026 Then
+                Highlight_IfNoCheckbox ws, tableName, rowIdx, used2026
+            End If
+        End If
+    Next lo
+    
+End Sub
+
+
+' - Highlights Cells that do not contain Checkbox.
+' - Color: #D9D9D9
+Public Sub Highlight_IfNoCheckbox(ws As Worksheet, ByVal tableName As String, ByVal rowIdx As Long, ByRef used() As Boolean)
+
+    Dim lo As ListObject
+    
+    On Error Resume Next
+    
+    Set lo = ws.ListObjects(tableName)
+    
+    On Error GoTo 0
+    
+    If lo Is Nothing Then Exit Sub
+    If lo.DataBodyRange Is Nothing Then Exit Sub
+    If rowIdx < 1 Or rowIdx > lo.ListRows.Count Then Exit Sub
+
+    Dim i As Long, cell As Range
+    
+    For i = 1 To 12
+        Dim lc As ListColumn
+        
+        Set lc = lo.ListColumns(MONTHS(i - 1))
+        Set cell = lc.DataBodyRange.Cells(rowIdx, 1)
+        
+        If used(i) Then
+            cell.Interior.Pattern = xlPatternNone
+        Else
+            cell.Interior.Color = RGB(R_NoCheckbox_Fill, G_NoCheckbox_Fill, B_NoCheckbox_Fill)
+        End If
+    Next i
+    
+End Sub
+
+
+' - Deletes a specific Checkbox by key.
+' - Key: name = cb_y_m_r{row}
+Public Sub Delete_Checkbox(ws As Worksheet, ByVal y As Long, ByVal m As Long, ByVal rowIdx As Long)
+
+    Dim key As String
+    
+    key = "cb_" & CStr(y) & "_" & CStr(m) & "_r" & CStr(rowIdx)
+    
+    On Error Resume Next
+    
+    ws.Shapes(key).Delete
+    
+    On Error GoTo 0
+    
+End Sub
+
+
+
+' ==============================================================================================================================================
+' ------------------------------------------------------------- SHEET VISIBILITY ---------------------------------------------------------------
+' ==============================================================================================================================================
+
+' - Builds a Row Signature for the given Row Index.
+Public Function Create_RowSignature(lo As ListObject, ByVal rowIdx As Long) As String
+
+    If Len(SIG_DELIM) = 0 Then SIG_DELIM = ChrW(&H241F)
+    
+    Dim arr As Variant
+    
+    arr = lo.DataBodyRange.Rows(rowIdx).Value2
+    
+    Dim j As Long, parts() As String
+    
+    ReDim parts(1 To UBound(arr, 2))
+    
+    For j = 1 To UBound(arr, 2)
+        If IsError(arr(1, j)) Then
+            parts(j) = "#ERR"
+        ElseIf IsEmpty(arr(1, j)) Or IsNull(arr(1, j)) Then
+            parts(j) = ""
+        Else
+            parts(j) = CStr(arr(1, j))
+        End If
+    Next j
+    
+    Create_RowSignature = Join(parts, SIG_DELIM)
+    
+End Function
+
+
+' - Enforces Sheet visibility.
+' - Shows: Last Row + 3
+Public Sub Set_SheetVisibility(ws As Worksheet, tableName As String)
+
+    On Error GoTo SafeExit
+
+    Dim lo As ListObject
+    
+    Set lo = Nothing
+    
+    On Error Resume Next
+    
+    Set lo = ws.ListObjects(tableName)
+    
+    On Error GoTo 0
+
+    Dim lastDataRow As Long
+    Dim Target As Long
+    
+    lastDataRow = Find_LastTableRow(lo)
+    Target = lastDataRow + 3
+
+    If lastVisibilityTarget = Target Then Exit Sub
+    
+    lastVisibilityTarget = Target
+    
+    ws.Unprotect Password:=PASSWORD_PROTECT
+    
+    ws.Rows("1:" & Target).EntireRow.Hidden = False
+    
+    Update_Protection_BANK ws
+    
+    If Target < ws.Rows.Count Then
+        ws.Rows((Target + 1) & ":" & ws.Rows.Count).EntireRow.Hidden = True
+    End If
+    
+    ws.Rows(Target).RowHeight = 20
+
+SafeExit:
+
+End Sub
+
+
+' - Rebuilds the Snapshot.
+' - Call this after every structural change.
+Public Sub Refresh_Snapshot(ws As Worksheet, tableName As String)
+
+    Dim lo As ListObject
+    
+    On Error Resume Next
+    
+    Set lo = ws.ListObjects(tableName)
+    
+    On Error GoTo 0
+    
+    Dim i As Long
+    
+    Set prevMainSigs = New Collection
+    
+    prevMainCount = 0
+
+    If lo Is Nothing Then Exit Sub
+    If lo.DataBodyRange Is Nothing Then Exit Sub
+
+    For i = 1 To lo.ListRows.Count
+        prevMainSigs.Add Create_RowSignature(lo, i)
+    Next i
+    
+    prevMainCount = lo.ListRows.Count
+    lastKnownListRowsCount = prevMainCount
+    
+End Sub
+
+
+' - Runs a public procedure.
+' - For: Set_SheetVisibility & Refresh_Snapshot.
+Public Sub RunSheetMacro(ByVal publicProc As String, ParamArray args() As Variant)
+
+    Dim m As String
+    
+    m = "'" & ThisWorkbook.Name & "'!" & publicProc
+
+    On Error Resume Next
+    
+    If UBound(args) >= 0 Then
+        Application.Run m, args(0), args(1)
+    Else
+        Application.Run m
+    End If
+
+    If Err.Number <> 0 Then
+        Debug.Print "[modGalicia] Failed Application.Run -> "; m; " | Err:"; Err.Number; " "; Err.Description
+        Err.Clear
+    End If
+    
+    On Error GoTo 0
+    
+End Sub
+
+
+
+' ==============================================================================================================================================
+' ------------------------------------------------------------- SHEET PROTECTION ---------------------------------------------------------------
+' ==============================================================================================================================================
+
+' - Handles BANK Sheets protection.
+Public Sub Monitor_DynamicProtection(ByVal ws As Worksheet, ByVal Target As Range)
+
+    Dim monitorRange As Range
+    
+    If ws Is Nothing Then GoTo CleanExit
+
+    Dim loMain As ListObject, lo2025 As ListObject, lo2026 As ListObject
+    
+    If Not BTN_Assign_AllTables(ws, loMain, lo2025, lo2026) Then
+        Debug.Print "[Add_Row] Missing one or more tables on sheet: " & ws.Name
+        GoTo CleanExit
+    End If
+    
+    If Not loMain Is Nothing Then Set monitorRange = loMain.Range
+    If Not monitorRange Is Nothing Then
+        If Not Intersect(Target, monitorRange) Is Nothing Then
+            Update_Protection_BANK ws
+            Exit Sub
+        End If
+    End If
+    
+    Set monitorRange = Nothing
+    
+    If Not lo2025 Is Nothing Then Set monitorRange = lo2025.Range
+    If Not monitorRange Is Nothing Then
+        If Not Intersect(Target, monitorRange) Is Nothing Then
+            Update_Protection_BANK ws
+            Exit Sub
+        End If
+    End If
+    
+    Set monitorRange = Nothing
+    
+    If Not lo2026 Is Nothing Then Set monitorRange = lo2026.Range
+    If Not monitorRange Is Nothing Then
+        If Not Intersect(Target, monitorRange) Is Nothing Then
+            Update_Protection_BANK ws
+            Exit Sub
+        End If
+    End If
+    
+    On Error GoTo 0
+
+CleanExit:
+
+End Sub
