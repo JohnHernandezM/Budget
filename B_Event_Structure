@@ -18,13 +18,13 @@ Public Sub Initialize_WS_A(ByVal ws As Worksheet)
     
     SIG_DELIM = ChrW(&H241F)
 
-    Place_AddButtonAtRow 9, ws
+    Place_AddButton_AtRow 9, ws
 
     Refresh_Snapshot ws, MainTable
     
     lastKnownListRowsCount = prevMainCount
 
-    Set_SheetVisibility ws, MainTable
+    Set_Visibility_ForSheet ws, MainTable
     
     Update_Protection_BANK ws
 
@@ -82,11 +82,11 @@ Public Sub Sync_WS_SC(ByVal ws As Worksheet, ByVal Target As Range)
     End If
 
     If needSync Then
-        Sync_Delete_MainRows_ToYearTables ws
+        Sync_Deletion_MainTable_To_YearTables ws
     End If
 
-    Check_AddButtonPosition ws, ws.ListObjects(MainTable)
-    Set_SheetVisibility ws, MainTable
+    Check_AddButton_Position ws, ws.ListObjects(MainTable)
+    Set_Visibility_ForSheet ws, MainTable
 
 CleanExit:
     Application.ScreenUpdating = prevScreen
@@ -121,11 +121,11 @@ Public Sub Process_WS_C(ByVal ws As Worksheet, ByVal Target As Range)
     
     If loMain Is Nothing Then GoTo CleanExit
     
-    Sync_Delete_MainRows_ToYearTables ws
+    Sync_Deletion_MainTable_To_YearTables ws
 
-    Check_AddButtonPosition ws, ws.ListObjects(MainTable)
+    Check_AddButton_Position ws, ws.ListObjects(MainTable)
     
-    Set_SheetVisibility ws, MainTable
+    Set_Visibility_ForSheet ws, MainTable
 
     If loMain.DataBodyRange Is Nothing Then
         Refresh_Snapshot ws, MainTable
@@ -140,11 +140,11 @@ Public Sub Process_WS_C(ByVal ws As Worksheet, ByVal Target As Range)
 
     Dim idxG As Long, idxF As Long, idxH As Long, idxI As Long, idxJ As Long
     
-    idxG = loMain.ListColumns(Col_CUOTAS).Index            ' G
-    idxF = idxG - 1                                        ' F
-    idxH = idxG + 1                                        ' H
-    idxI = loMain.ListColumns(Col_M).Index                 ' I
-    idxJ = loMain.ListColumns(Col_A).Index                 ' J
+    idxG = loMain.ListColumns(LBL_col_CUOTAS).Index            ' G
+    idxF = idxG - 1                                            ' F
+    idxH = idxG + 1                                            ' H
+    idxI = loMain.ListColumns(LBL_col_M).Index                 ' I
+    idxJ = loMain.ListColumns(LBL_col_A).Index                 ' J
     
     If idxF < 1 Or idxH > loMain.ListColumns.Count Then
         Refresh_Snapshot ws, MainTable
@@ -165,7 +165,7 @@ Public Sub Process_WS_C(ByVal ws As Worksheet, ByVal Target As Range)
     
     If hit Is Nothing Then
         Refresh_Snapshot ws, MainTable
-        Set_SheetVisibility ws, MainTable
+        Set_Visibility_ForSheet ws, MainTable
         
         GoTo CleanExit
     End If
@@ -180,7 +180,7 @@ Public Sub Process_WS_C(ByVal ws As Worksheet, ByVal Target As Range)
         ' - Validate F & G: Only Numbers.
         If Not Intersect(c, Union(rngF, rngG)) Is Nothing Then
             If Len(c.Value) > 0 Then
-                If Not Validate_InputNumber(c.Value) Then
+                If Not Validate_Numeric(c.Value) Then
                     c.ClearContents
                     Clear_Row ws, rowIdx
                     loMain.ListColumns(idxH).DataBodyRange.Cells(rowIdx, 1).ClearContents
@@ -215,14 +215,14 @@ Public Sub Process_WS_C(ByVal ws As Worksheet, ByVal Target As Range)
         
         okFG = (Len(valF) > 0 And Len(valG) > 0 And IsNumeric(valF) And IsNumeric(valG) And CDbl(valF) > 0 And CDbl(valG) > 0)
 
-        If okFG And Len(Trim$(valI)) > 0 And Not Check_IfEmpty(valJ) Then
+        If okFG And Len(Trim$(valI)) > 0 And Not Check_If_Empty(valJ) Then
             Dim n As Long, startYear As Long, mIdx As Long
             
             n = CLng(valG)
             
             If Not IsNumeric(valJ) Then GoTo SkipBuild
             startYear = CLng(valJ)
-            mIdx = Get_MonthIndex(valI)
+            mIdx = Get_Month_Index(valI)
             
             If mIdx = 0 Then GoTo SkipBuild
 
@@ -238,14 +238,14 @@ SkipBuild:
 NextC:
     Next c
 
-    Monitor_DynamicProtection ws, Target
+    Monitor_Protection ws, Target
     Refresh_Snapshot ws, MainTable
-    Set_SheetVisibility ws, MainTable
+    Set_Visibility_ForSheet ws, MainTable
 
 CleanExit:
     Application.Calculation = prevCalc
     Application.ScreenUpdating = prevScreen
     Application.EnableEvents = prevEvents
-    Monitor_DynamicProtection ws, Target
+    Monitor_Protection ws, Target
 
 End Sub
