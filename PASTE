@@ -1,14 +1,57 @@
+' - Sheet.
+Public Const LBL_ws_PLUS                        As String = "+"
+
+' - Ranges: Add Sheet.
+Public Const LBL_rng_BANK                       As String = "D4"
+Public Const LBL_rng_NAME                       As String = "D6"
+Public Const LBL_rng_COLOR                      As String = "D8"
+Public Const LBL_rng_BTN_Add_Sheet              As String = "C10"           ' Button.
+
+' - Ranges: Update Data Validation.
+Public Const LBL_rng_ACTION                     As String = "I4"
+Public Const LBL_rng_SECTION_Q                  As String = "H6"
+Public Const LBL_rng_SECTION                    As String = "I6"
+Public Const LBL_rng_ITEM                       As String = "I8"
+Public Const LBL_rng_BTN_Update_DV              As String = "H10"           ' Button.
+
+' - Buttons.
+Public Const LBL_txt_BTN_Add_Sheet              As String = "Crear"         ' Add Sheet.
+Public Const LBL_txt_BTN_Update_DV_Add          As String = "Agregar"       ' Data Validation.
+Public Const LBL_txt_BTN_Update_DV_Del          As String = "Eliminar"      ' Data Validation.
+
+' - General.
+Public Const LBL_gen_CATEGORY                   As String = "Categoría"
+Public Const LBL_gen_DE                         As String = "De"
+
+
+' -------------------------------------------------------------------------------------------------------- Worksheet: Banking
+
+' - Columns.
+Public Const LBL_col_CUOTAS                     As String = "CUOTAS"
+Public Const LBL_col_M                          As String = "[ M ]"
+Public Const LBL_col_A                          As String = "[ A ]"
+
+
+' -------------------------------------------------------------------------------------------------------- Worksheet: Data
+
+' - Tables.
+Public Const LBL_lo_DATA_BANK_LOGO              As String = "DATA_BANK_LOGO"
+Public Const LBL_lo_DATA_BANK_CATEGORY          As String = "DATA_BANK_CATEGORY"
+Public Const LBL_lo_DATA_BANK_DE                As String = "DATA_BANK_DE"
+
+
+
 Private Sub Worksheet_Change(ByVal Target As Range)
     
-    Dim hit_BANK_NAME       As Boolean          ' Add Sheet.
+    Dim hit_BANK            As Boolean          ' Add Sheet.
     Dim hit_ACTION          As Boolean          ' Data Validation.
-    Dim hit_IN_or_FROM      As Boolean          ' Data Validation.
+    Dim hit_SECTION         As Boolean          ' Data Validation.
     
-    hit_BANK_NAME = Not Intersect(Target, Me.Range(LBL_rng_BANK_NAME)) Is Nothing
+    hit_BANK = Not Intersect(Target, Me.Range(LBL_rng_BANK)) Is Nothing
     hit_ACTION = Not Intersect(Target, Me.Range(LBL_rng_ACTION)) Is Nothing
-    hit_IN_or_FROM = Not Intersect(Target, Me.Range(LBL_rng_IN_or_FROM)) Is Nothing
+    hit_SECTION = Not Intersect(Target, Me.Range(LBL_rng_SECTION)) Is Nothing
     
-    If Not (hit_BANK_NAME Or hit_ACTION Or hit_IN_or_FROM) Then Exit Sub
+    If Not (hit_BANK Or hit_ACTION Or hit_SECTION) Then Exit Sub
     
     Dim prevEvents          As Boolean
     
@@ -18,14 +61,14 @@ Private Sub Worksheet_Change(ByVal Target As Range)
     On Error GoTo CleanUp
 
     ' ------------------------------------------------------------------------------------ Watch: Bank -> Add Sheet.
-    If hit_BANK_NAME Then
+    If hit_BANK Then
         Dim tbl             As ListObject
         Dim ws              As Worksheet
         Dim lr              As ListRow
         Dim key             As String
         Dim found           As Boolean
 
-        key = Get_SafeText(Me.Range(LBL_rng_BANK_NAME).Value)
+        key = Get_SafeText(Me.Range(LBL_rng_BANK).Value)
         
         Set tbl = Find_Table_ByName(LBL_lo_DATA_BANK_LOGO)
         
@@ -42,7 +85,7 @@ Private Sub Worksheet_Change(ByVal Target As Range)
                 
                 idx = Application.Match(key, keyCol, 0)
                 
-                Set dest = Me.Range(LBL_rng_TAB_COLOR)
+                Set dest = Me.Range(LBL_rng_COLOR)
                 
                 If Not IsError(idx) Then
                     Set srcCell = tbl.DataBodyRange.Rows(CLng(idx)).Cells(1, 3)
@@ -63,31 +106,31 @@ Private Sub Worksheet_Change(ByVal Target As Range)
             End If
             
             If Not found Then
-                Clear_Tab_Color Me.Range(LBL_rng_TAB_COLOR)
+                Clear_Color Me.Range(LBL_rng_COLOR)
             End If
         End If
     End If
     
     ' ------------------------------------------------------------------------------------ Watch: Action & Categories -> DV.
     Dim Input_ACTION        As String
-    Dim Input_IN_or_FROM    As String
+    Dim Input_SECTION       As String
     
     Input_ACTION = Trim$(CStr(Me.Range(LBL_rng_ACTION).Value))
-    Input_IN_or_FROM = Trim$(CStr(Me.Range(LBL_rng_IN_or_FROM).Value))
+    Input_SECTION = Trim$(CStr(Me.Range(LBL_rng_SECTION).Value))
     
     ' - If ACTION was cleared.
     If hit_ACTION And Len(Input_ACTION) = 0 Then
-        Me.Range(LBL_rng_IN_or_FROM).ClearContents
-        Clear_DataValidation Me.Range(LBL_rng_ITEM)
+        Me.Range(LBL_rng_SECTION).ClearContents
+        Clear_DV Me.Range(LBL_rng_ITEM)
         Me.Range(LBL_rng_ITEM).ClearContents
-        Remove_Shapes_InCell Me.Range(LBL_rng_BTN_ADD_or_DEL_DV)
+        Remove_Shapes_InCell Me.Range(LBL_rng_BTN_Update_DV)
         
         GoTo After_COMPLETED
     End If
     
-    ' - If IN or FROM was cleared.
-    If hit_IN_or_FROM And Len(Input_IN_or_FROM) = 0 Then
-        Clear_DataValidation Me.Range(LBL_rng_ITEM)
+    ' - If SECTION was cleared.
+    If hit_SECTION And Len(Input_SECTION) = 0 Then
+        Clear_DV Me.Range(LBL_rng_ITEM)
         Me.Range(LBL_rng_ITEM).ClearContents
         
         GoTo After_COMPLETED
@@ -96,62 +139,66 @@ Private Sub Worksheet_Change(ByVal Target As Range)
     ' - If ACTION changed.
     If hit_ACTION Then
         Select Case Input_ACTION
-            Case LBL_BTN_ADD_DV
-                Me.Range(LBL_rng_MODE).Value = "En"
-                Me.Range(LBL_rng_IN_or_FROM).ClearContents
-                Clear_DataValidation Me.Range(LBL_rng_ITEM)
+            Case LBL_txt_BTN_Update_DV_Add
+                Me.Range(LBL_rng_SECTION_Q).Value = "En Sección"
+                Me.Range(LBL_rng_SECTION).ClearContents
+                Clear_DV Me.Range(LBL_rng_ITEM)
                 Me.Range(LBL_rng_ITEM).ClearContents
-                Rebuild_BTN_ADD_or_DEL_DV Me.Range(LBL_rng_BTN_ADD_or_DEL_DV), LBL_BTN_ADD_DV, RGB(25, 107, 36), RGB(25, 107, 36)
+                Rebuild_BTN_Update_DV Me.Range(LBL_rng_BTN_Update_DV), LBL_txt_BTN_Update_DV_Add, RGB(25, 107, 36), RGB(25, 107, 36)
                 
-            Case "Eliminar"
-                Me.Range(LBL_rng_MODE).Value = "De"
-                Me.Range(LBL_rng_IN_or_FROM).ClearContents
-                Clear_DataValidation Me.Range(LBL_rng_ITEM)
+            Case LBL_txt_BTN_Update_DV_Del
+                Me.Range(LBL_rng_SECTION_Q).Value = "De Sección"
+                Me.Range(LBL_rng_SECTION).ClearContents
+                Clear_DV Me.Range(LBL_rng_ITEM)
                 Me.Range(LBL_rng_ITEM).ClearContents
-                Rebuild_BTN_ADD_or_DEL_DV Me.Range(LBL_rng_BTN_ADD_or_DEL_DV), "Eliminar", RGB(192, 0, 0), RGB(192, 0, 0)
+                Rebuild_BTN_Update_DV Me.Range(LBL_rng_BTN_Update_DV), LBL_txt_BTN_Update_DV_Del, RGB(192, 0, 0), RGB(192, 0, 0)
         End Select
     End If
     
     Input_ACTION = Trim$(CStr(Me.Range(LBL_rng_ACTION).Value))
-    Input_IN_or_FROM = Trim$(CStr(Me.Range(LBL_rng_IN_or_FROM).Value))
+    Input_SECTION = Trim$(CStr(Me.Range(LBL_rng_SECTION).Value))
     
     Dim shp As Shape
+
     Set shp = Nothing
     
     On Error Resume Next
     
-    Set shp = Me.Shapes("BTN_ADD_or_DEL_DV")
+    Set shp = Me.Shapes("BTN_Update_DV")
     
     On Error GoTo CleanUp
     
-    If Input_ACTION = LBL_BTN_ADD_DV Then
-        If StrComp(Input_IN_or_FROM, LBL_BTN_ADD_or_DEL_DV_CATEGORY, vbTextCompare) = 0 Then
+    If Input_ACTION = LBL_txt_BTN_Update_DV_Add Then
+    
+        If StrComp(Input_SECTION, LBL_gen_CATEGORY, vbTextCompare) = 0 Then
             If Not shp Is Nothing Then shp.OnAction = "Add_Category"
-        ElseIf StrComp(Input_IN_or_FROM, "De", vbTextCompare) = 0 Then
+        ElseIf StrComp(Input_SECTION, LBL_gen_DE, vbTextCompare) = 0 Then
             If Not shp Is Nothing Then shp.OnAction = "Add_De"
         End If
         
-    ElseIf Input_ACTION = LBL_BTN_DEL_DV Then
-        If StrComp(Input_IN_or_FROM, LBL_BTN_ADD_or_DEL_DV_CATEGORY, vbTextCompare) = 0 Then
+    ElseIf Input_ACTION = LBL_txt_BTN_Update_DV_Del Then
+    
+        If StrComp(Input_SECTION, LBL_gen_CATEGORY, vbTextCompare) = 0 Then
             Dim srcCat As Range
             Set srcCat = Get_FirstCol_FromTable(LBL_lo_DATA_BANK_CATEGORY)
             
             If Not srcCat Is Nothing Then
-                ApplyListDV Me.Range(LBL_rng_ITEM), srcCat
+                Apply_DV_List Me.Range(LBL_rng_ITEM), srcCat
             End If
             
             If Not shp Is Nothing Then shp.OnAction = "Del_Category"
             
-        ElseIf StrComp(Input_IN_or_FROM, LBL_BTN_ADD_or_DEL_DV_DE, vbTextCompare) = 0 Then
+        ElseIf StrComp(Input_SECTION, LBL_txt_BTN_Update_DV_De, vbTextCompare) = 0 Then
             Dim srcDe As Range
             Set srcDe = Get_FirstCol_FromTable(LBL_lo_DATA_BANK_DE)
             
             If Not srcDe Is Nothing Then
-                ApplyListDV Me.Range(LBL_rng_ITEM), srcDe
+                Apply_DV_List Me.Range(LBL_rng_ITEM), srcDe
             End If
             
             If Not shp Is Nothing Then shp.OnAction = "Del_De"
         End If
+        
     End If
 
 After_COMPLETED:
@@ -172,7 +219,7 @@ Private Function Get_SafeText(ByVal v As Variant) As String
 
 End Function
 
-Private Sub Clear_Tab_Color(ByVal rng As Range)
+Private Sub Clear_Color(ByVal rng As Range)
 
     With rng.Interior
         .Pattern = xlNone
@@ -200,7 +247,7 @@ Private Function Find_Table_ByName(ByVal loName As String) As ListObject
     
 End Function
 
-Private Sub Clear_DataValidation(ByVal rng As Range)
+Private Sub Clear_DV(ByVal rng As Range)
 
     On Error Resume Next
     
@@ -228,16 +275,17 @@ Private Sub Remove_Shapes_InCell(ByVal cell As Range)
     
     On Error Resume Next
     
-    Me.Shapes("BTN_ADD_or_DEL_DV").Delete
+    Me.Shapes("BTN_Update_DV").Delete
     
     On Error GoTo 0
     
 End Sub
 
-Private Function Rebuild_BTN_ADD_or_DEL_DV(ByVal cell As Range, ByVal caption As String, _
-                                           ByVal fillRGB As Long, ByVal lineRGB As Long) As Shape
+Private Function Rebuild_BTN_Update_DV(ByVal cell As Range, ByVal caption As String, ByVal fillRGB As Long, ByVal lineRGB As Long) As Shape
                                            
     Remove_Shapes_InCell cell
+    
+    MsgBox cell.Address
     
     Dim shp As Shape
     
@@ -245,7 +293,7 @@ Private Function Rebuild_BTN_ADD_or_DEL_DV(ByVal cell As Range, ByVal caption As
                                  Left:=cell.Left, Top:=cell.Top, _
                                  width:=cell.width, height:=cell.height)
     With shp
-        .Name = "BTN_ADD_or_DEL_DV"
+        .Name = "BTN_Update_DV"
         .TextFrame2.TextRange.Characters.Text = caption
         
         With .TextFrame2.TextRange.Font
@@ -261,7 +309,7 @@ Private Function Rebuild_BTN_ADD_or_DEL_DV(ByVal cell As Range, ByVal caption As
         .Line.ForeColor.RGB = lineRGB
     End With
     
-    Set Rebuild_BTN_ADD_or_DEL_DV = shp
+    Set Rebuild_BTN_Update_DV = shp
     
 End Function
 
@@ -279,12 +327,12 @@ Private Function Get_FirstCol_FromTable(ByVal loName As String) As Range
     
 End Function
 
-Private Sub ApplyListDV(ByVal Target As Range, ByVal src As Range)
+Private Sub Apply_DV_List(ByVal Target As Range, ByVal src As Range)
 
     Dim addr As String
     
     addr = "=" & src.Address(RowAbsolute:=True, ColumnAbsolute:=True, ReferenceStyle:=xlA1, External:=True)
-    Clear_DataValidation Target
+    Clear_DV Target
     Target.Validation.Add Type:=xlValidateList, AlertStyle:=xlValidAlertStop, Operator:=xlBetween, Formula1:=addr
     
 End Sub
