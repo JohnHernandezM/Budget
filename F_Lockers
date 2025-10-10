@@ -4,7 +4,7 @@ Option Explicit
 ' --------------------------------------------------------------- LOCKER: + --------------------------------------------------------------------
 ' ==============================================================================================================================================
 
-Public Sub LockPlusSheet()
+Public Sub Lock_Sheet_Plus()
 
     Dim ws As Worksheet
     Set ws = ThisWorkbook.Worksheets("+")
@@ -55,7 +55,7 @@ Public Sub Update_Protection_BANK(ByVal ws As Worksheet)
 
     On Error Resume Next
     
-    ws.Unprotect Password:=PASSWORD_PROTECT
+    ws.Unprotect Password:=pw_PASSWORD
     
     On Error GoTo 0
 
@@ -85,7 +85,7 @@ Public Sub Update_Protection_BANK(ByVal ws As Worksheet)
         If Not lo2025.DataBodyRange Is Nothing Then
             For Each rowRange In lo2025.DataBodyRange.Rows
                 For Each cell In ws.Range(ws.Cells(rowRange.Row, "L"), ws.Cells(rowRange.Row, "W"))
-                    If Check_IfCheckbox(ws, cell) Then
+                    If Check_If_Checkbox(ws, cell) Then
                         cell.Locked = False
                     Else
                         cell.Locked = True
@@ -99,7 +99,7 @@ Public Sub Update_Protection_BANK(ByVal ws As Worksheet)
         If Not lo2026.DataBodyRange Is Nothing Then
             For Each rowRange In lo2026.DataBodyRange.Rows
                 For Each cell In ws.Range(ws.Cells(rowRange.Row, "Y"), ws.Cells(rowRange.Row, "AJ"))
-                    If Check_IfCheckbox(ws, cell) Then
+                    If Check_If_Checkbox(ws, cell) Then
                         cell.Locked = False
                     Else
                         cell.Locked = True
@@ -111,7 +111,7 @@ Public Sub Update_Protection_BANK(ByVal ws As Worksheet)
 
     On Error Resume Next
     
-    ws.Protect Password:=PASSWORD_PROTECT, UserInterfaceOnly:=True, _
+    ws.Protect Password:=pw_PASSWORD, UserInterfaceOnly:=True, _
                AllowFormattingCells:=False, AllowFormattingColumns:=False, AllowFormattingRows:=False, _
                AllowInsertingColumns:=False, AllowInsertingRows:=False, _
                AllowDeletingColumns:=False, AllowDeletingRows:=False, _
