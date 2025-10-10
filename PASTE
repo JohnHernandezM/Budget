@@ -1,42 +1,10 @@
-Private Function Rebuild_BTN_Update_DV(ByVal cell As Range, ByVal caption As String, ByVal fillRGB As Long, ByVal lineRGB As Long) As Shape
-    ' Ensure no name collision anywhere on the sheet
-    On Error Resume Next
-    Me.Shapes("BTN_Update_DV").Delete
-    On Error GoTo 0
-
-    Remove_Shapes_InCell cell
-
-    Dim shp As Shape
-    Set shp = Me.Shapes.AddShape(Type:=msoShapeRoundedRectangle, _
-                                 Left:=cell.Left, Top:=cell.Top, _
-                                 Width:=cell.Width, Height:=cell.Height)
-
-    With shp
-        .Placement = xlMoveAndSize
-        .LockAspectRatio = msoFalse
-
-        ' Safe rename now that any prior one is gone
-        .Name = "BTN_Update_DV"
-
-        .TextFrame2.TextRange.Characters.Text = caption
-        With .TextFrame2.TextRange.Font
-            .Bold = msoTrue
-            .Size = 10
-            .Fill.ForeColor.RGB = RGB(255, 255, 255)
-        End With
-        .TextFrame2.VerticalAnchor = msoAnchorMiddle
-        .TextFrame2.TextRange.ParagraphFormat.Alignment = msoAlignCenter
-
-        .Fill.ForeColor.RGB = fillRGB
-        .Line.ForeColor.RGB = lineRGB
-    End With
-
-    Set Rebuild_BTN_Update_DV = shp
+Function GetShapeByName(ws As Worksheet, shpName As String) As Shape
+    Dim shp As Shape, n As String
+    n = LCase$(shpName)
+    For Each shp In ws.Shapes
+        If LCase$(shp.Name) = n Then
+            Set GetShapeByName = shp
+            Exit Function
+        End If
+    Next
 End Function
-
-
-
-
-
-
-
