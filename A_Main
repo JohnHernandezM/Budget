@@ -1,122 +1,83 @@
 Option Explicit
 
 ' ==============================================================================================================================================
-' ----------------------------------------------------------------- LABELS ---------------------------------------------------------------------
+' ------------------------------------------------------------- DECLARATIONS -------------------------------------------------------------------
 ' ==============================================================================================================================================
 
-' ------------------------------------------------------------------------------------------------ Password
-Public Const PASSWORD_PROTECT               As String = "jh"
+' --------
+' PASSWORD
+' --------
 
+Public Const pw_PASSWORD            As String = "jh"
 
-' ------------------------------------------------------------------------------------------------ Worksheet: BANKING
-Public Const LBL_col_CUOTAS                 As String = "CUOTAS"
-Public Const LBL_col_M                      As String = "[ M ]"
-Public Const LBL_col_A                      As String = "[ A ]"
+' ----
+' MAIN
+' ----
 
+Public MainTable                    As String
+Public Install_InSheet              As String
 
-' ------------------------------------------------------------------------------------------------ Worksheet: DATA
-Public Const LBL_lo_DATA_BANK_LOGO          As String = "DATA_BANK_LOGO"
+' ------
+' LOCATE
+' ------
 
+Public Const LBL_col_CUOTAS         As String = "CUOTAS"
+Public Const LBL_col_M              As String = "[ M ]"
+Public Const LBL_col_A              As String = "[ A ]"
 
-' ------------------------------------------------------------------------------------------------ Worksheet: +
-Public Const LBL_rng_BANK_NAME              As String = "C2"
-Public Const LBL_rng_TAB_COLOR              As String = "C6"
+' ------
+' COLORS
+' ------
 
-
-
-' ==============================================================================================================================================
-' ----------------------------------------------------------------- DECLARATIONS ---------------------------------------------------------------
-' ==============================================================================================================================================
-
-' ------------------------------------------------------------------------------------------------ Worksheet: +
-Public Const col_DATA_BANK_LOGO_NAME        As Long = 1
-Public Const col_DATA_BANK_LOGO_TAB         As Long = 3
-
-
-' ------------------------------------------------------------------------------------------------ General
-Public MainTable                            As String
-Public Install_InSheet                      As String
-
-
-Public MONTHS                               As Variant
-
-Public prevMainCount                        As Long
-Public lastVisibilityTarget                 As Long
-Public lastKnownListRowsCount               As Long
-
-Public prevMainSigs                         As Collection
-
-Public SIG_DELIM                            As String
-
-
-' ------------------------------------------------------------------------------------------------ Colors
-' #Gray: No Checkboxs
+' - Gray: No Checkboxs
 Public Const R_NoCheckbox_Fill      As Long = 217
 Public Const G_NoCheckbox_Fill      As Long = 217
 Public Const B_NoCheckbox_Fill      As Long = 217
 
-' #Dark Blue: Table Headers
+' - Dark Blue: Table Headers
 Public Const R_Header_Fill          As Long = 0
 Public Const G_Header_Fill          As Long = 32
 Public Const B_Header_Fill          As Long = 96
 
-' #Black: Titles
+' - Black: Titles
 Public Const R_Title_Fill           As Long = 0
 Public Const G_Title_Fill           As Long = 0
 Public Const B_Title_Fill           As Long = 0
 
-' #White: Titles Font
+' - White: Titles Font
 Public Const R_Title_Font           As Long = 255
 Public Const G_Title_Font           As Long = 255
 Public Const B_Title_Font           As Long = 255
 
-' #Green: [M][A] Headers
+' - Green: [M][A] Headers
 Public Const R_IJ_Header_Fill       As Long = 60
 Public Const G_IJ_Header_Fill       As Long = 125
 Public Const B_IJ_Header_Fill       As Long = 34
 
-' #Dark Green: [M][A] Rows
+' - Dark Green: [M][A] Rows
 Public Const R_IJ_FirstRow_Fill     As Long = 193
 Public Const G_IJ_FirstRow_Fill     As Long = 240
 Public Const B_IJ_FirstRow_Fill     As Long = 200
 
+' ---------
+' VARIABLES
+' ---------
+
+Public MONTHS                       As Variant
+
+Public prevMainCount                As Long
+Public lastVisibilityTarget         As Long
+Public lastKnownListRowsCount       As Long
+
+Public prevMainSigs                 As Collection
+
+Public SIG_DELIM                    As String
+
 
 
 ' ==============================================================================================================================================
-' ----------------------------------------------------------------- FUNCTIONS ------------------------------------------------------------------
+' ------------------------------------------------------------- FUNCTIONS ----------------------------------------------------------------------
 ' ==============================================================================================================================================
-
-' - Locates the Table by name, scanning the Workbook.
-' - Returns Nothing if not found.
-Public Function Find_BankTable(ByVal tableName As String) As ListObject
-    Dim ws As Worksheet
-    Dim lo As ListObject
-
-    For Each ws In ThisWorkbook.Worksheets
-        On Error Resume Next
-        Set lo = Nothing
-        Set lo = ws.ListObjects(tableName)
-        On Error GoTo 0
-        If Not lo Is Nothing Then
-            Set Find_BankTable = lo
-            Exit Function
-        End If
-    Next ws
-
-    ' Optional fallback: try workbook Name "Data_Bank_Logo[#All]" if it exists.
-    On Error Resume Next
-    Dim nm As Name
-    Set nm = ThisWorkbook.Names(tableName & "[#All]")
-    If Not nm Is Nothing Then
-        If Not nm.RefersToRange Is Nothing Then
-            If Not nm.RefersToRange.ListObject Is Nothing Then
-                Set Find_BankTable = nm.RefersToRange.ListObject
-            End If
-        End If
-    End If
-    On Error GoTo 0
-End Function
-
 
 ' - Creates the Label for the Main Table.
 ' - Bases on the Worksheet name.
@@ -146,14 +107,14 @@ End Function
 
 ' - Computes the Last Row of a Table.
 ' - Falls back to Header + 1 if empty.
-Public Function Find_LastTableRow(ByVal lo As ListObject) As Long
+Public Function Find_LastRow_InTable(ByVal lo As ListObject) As Long
 
     If lo Is Nothing Then
-        Find_LastTableRow = 1
+        Find_LastRow_InTable = 1
     ElseIf lo.DataBodyRange Is Nothing Then
-        Find_LastTableRow = lo.HeaderRowRange.Row + 1
+        Find_LastRow_InTable = lo.HeaderRowRange.Row + 1
     Else
-        Find_LastTableRow = lo.DataBodyRange.Rows(lo.DataBodyRange.Rows.Count).Row
+        Find_LastRow_InTable = lo.DataBodyRange.Rows(lo.DataBodyRange.Rows.Count).Row
     End If
     
 End Function
@@ -161,23 +122,23 @@ End Function
 
 ' - Validates numeric input.
 ' - Only positive numbers allowed.
-Public Function Validate_InputNumber(ByVal v As Variant) As Boolean
+Public Function Validate_Numeric(ByVal v As Variant) As Boolean
 
     If IsEmpty(v) Then
-        Validate_InputNumber = False
+        Validate_Numeric = False
         Exit Function
     End If
     
     If IsNumeric(v) Then
-        Validate_InputNumber = (CDbl(v) > 0)
+        Validate_Numeric = (CDbl(v) > 0)
     Else
         Dim s As String: s = CStr(v)
         If InStr(s, " ") > 0 Then
-            Validate_InputNumber = False
+            Validate_Numeric = False
         ElseIf Not IsNumeric(s) Then
-            Validate_InputNumber = False
+            Validate_Numeric = False
         Else
-            Validate_InputNumber = (CDbl(s) > 0)
+            Validate_Numeric = (CDbl(s) > 0)
         End If
     End If
     
@@ -186,34 +147,34 @@ End Function
 
 ' - Checks if a Shape exists.
 ' - Searches is made by name.
-Public Function Check_ShapeExists(ByVal nm As String, ws As Worksheet) As Boolean
+Public Function Check_Shape_Exists(ByVal nm As String, ws As Worksheet) As Boolean
 
     Dim shp As Shape
     
     For Each shp In ws.Shapes
-        If shp.Name = nm Then Check_ShapeExists = True: Exit Function
+        If shp.Name = nm Then Check_Shape_Exists = True: Exit Function
     Next
     
 End Function
 
 
 ' - Checks if a value is empty.
-Public Function Check_IfEmpty(v As Variant) As Boolean
-    Check_IfEmpty = (VarType(v) = vbEmpty Or (VarType(v) = vbString And Len(Trim$(CStr(v))) = 0))
+Public Function Check_If_Empty(v As Variant) As Boolean
+    Check_If_Empty = (VarType(v) = vbEmpty Or (VarType(v) = vbString And Len(Trim$(CStr(v))) = 0))
 End Function
 
 
 ' - Gets Month index based on Month name.
-Public Function Get_MonthIndex(ByVal monthName As String) As Long
+Public Function Get_Month_Index(ByVal monthName As String) As Long
 
     Dim i As Long
     Dim m As String: m = Trim$(monthName)
     
-    Get_MonthIndex = 0
+    Get_Month_Index = 0
     
     For i = LBound(MONTHS) To UBound(MONTHS)
         If StrComp(m, MONTHS(i), vbTextCompare) = 0 Then
-            Get_MonthIndex = i + 1
+            Get_Month_Index = i + 1
             Exit For
         End If
     Next i
@@ -222,17 +183,17 @@ End Function
 
 
 ' - Gets Month Column based on Month index.
-Public Function Get_MonthColumn(lo As ListObject, Get_MonthIndex As Long) As ListColumn
+Public Function Get_Month_Column(lo As ListObject, Get_Month_Index As Long) As ListColumn
 
     Dim header As String
-    header = MONTHS(Get_MonthIndex - 1)
-    Set Get_MonthColumn = lo.ListColumns(header)
+    header = MONTHS(Get_Month_Index - 1)
+    Set Get_Month_Column = lo.ListColumns(header)
     
 End Function
 
 
 ' - Sets Table depending on the Year.
-Public Function Set_TableForYear(ws As Worksheet, ByVal y As Long) As ListObject
+Public Function Set_Table_ForYear(ws As Worksheet, ByVal y As Long) As ListObject
 
     On Error Resume Next
     
@@ -241,9 +202,9 @@ Public Function Set_TableForYear(ws As Worksheet, ByVal y As Long) As ListObject
         
         tableName = MainTable & "_" & y
         
-        Set Set_TableForYear = ws.ListObjects(tableName)
+        Set Set_Table_ForYear = ws.ListObjects(tableName)
     Else
-        Set Set_TableForYear = Nothing
+        Set Set_Table_ForYear = Nothing
     End If
     
     On Error GoTo 0
@@ -251,8 +212,8 @@ Public Function Set_TableForYear(ws As Worksheet, ByVal y As Long) As ListObject
 End Function
 
 
-' Checks if Checkbox present in Cell.
-Public Function Check_IfCheckbox(ByVal ws As Worksheet, ByVal rng As Range) As Boolean
+' - Checks if Checkbox present in Cell.
+Public Function Check_If_Checkbox(ByVal ws As Worksheet, ByVal rng As Range) As Boolean
 
     Dim shp As Shape
     Dim ole As OLEObject
@@ -287,7 +248,7 @@ Public Function Check_IfCheckbox(ByVal ws As Worksheet, ByVal rng As Range) As B
     Next shp
 
     If found Then
-        Check_IfCheckbox = True
+        Check_If_Checkbox = True
         Exit Function
     End If
 
@@ -309,7 +270,7 @@ Public Function Check_IfCheckbox(ByVal ws As Worksheet, ByVal rng As Range) As B
         End If
     Next ole
 
-    Check_IfCheckbox = found
+    Check_If_Checkbox = found
     
 End Function
 
@@ -371,7 +332,7 @@ End Function
 
 
 ' ==============================================================================================================================================
-' ----------------------------------------------------------------- PROCEDURES -----------------------------------------------------------------
+' ------------------------------------------------------------- PROCEDURES ---------------------------------------------------------------------
 ' ==============================================================================================================================================
 
 ' - Updates H Column.
@@ -412,7 +373,7 @@ Public Sub Clear_Row(ws As Worksheet, ByVal loRowIndex As Long)
     
     For Each lo In ws.ListObjects
         If IsNumeric(Right(lo.Name, 1)) Then
-            Clear_RowInTable ws, lo.Name, loRowIndex
+            Clear_Row_InTable ws, lo.Name, loRowIndex
         End If
     Next lo
     
@@ -421,7 +382,7 @@ End Sub
 
 ' - Clears indicated Row in the Year Tables.
 ' - # of Years Tables = # of times function needs to be called.
-Public Sub Clear_RowInTable(ws As Worksheet, tableName As String, ByVal loRowIndex As Long)
+Public Sub Clear_Row_InTable(ws As Worksheet, tableName As String, ByVal loRowIndex As Long)
 
     Dim lo As ListObject
     
@@ -458,7 +419,7 @@ End Sub
 
 ' - Deletes a specific Row from the Year Tables.
 ' - Purges Checkboxes on that Row.
-Public Sub Delete_RowInYearTables(ws As Worksheet, ByVal rowIdx As Long)
+Public Sub Delete_Row_InYearTables(ws As Worksheet, ByVal rowIdx As Long)
     
     Dim lo As ListObject
     
@@ -488,7 +449,7 @@ End Sub
 
 ' - Deletes bulk selected Main Rows.
 ' - Mirrors action to Year Tables.
-Public Sub Sync_Delete_MainRows_ToYearTables(ws As Worksheet)
+Public Sub Sync_Deletion_MainTable_To_YearTables(ws As Worksheet)
 
     Dim lo As ListObject
     
@@ -522,7 +483,7 @@ Public Sub Sync_Delete_MainRows_ToYearTables(ws As Worksheet)
         ReDim currSigs(1 To currCount)
         
         For i = 1 To currCount
-            currSigs(i) = Create_RowSignature(lo, i)
+            currSigs(i) = Create_Row_Signature(lo, i)
         Next i
     Else
         ReDim currSigs(1 To 1)
@@ -552,11 +513,11 @@ Public Sub Sync_Delete_MainRows_ToYearTables(ws As Worksheet)
         Application.EnableEvents = False
         
         For k = deletedIndices.Count To 1 Step -1
-            Delete_RowInYearTables ws, deletedIndices(k)
+            Delete_Row_InYearTables ws, deletedIndices(k)
         Next k
         
         Application.EnableEvents = prevEvents
-        Set_SheetVisibility ws, MainTable
+        Set_Visibility_ForSheet ws, MainTable
     End If
 
     Refresh_Snapshot ws, MainTable
@@ -566,7 +527,7 @@ End Sub
 
 
 ' ==============================================================================================================================================
-' ----------------------------------------------------------------- CHECKBOXES -----------------------------------------------------------------
+' ------------------------------------------------------------- CHECKBOXES ---------------------------------------------------------------------
 ' ==============================================================================================================================================
 
 ' - Adds Checkboxes.
@@ -617,7 +578,7 @@ Public Sub Place_Checkbox(ws As Worksheet, ByVal rowIdx As Long, ByVal startYear
         y = startYear + ((startMonthIdx - 1 + stepIdx) \ 12)
         m = (((startMonthIdx - 1 + stepIdx) Mod 12) + 1)
 
-        Set lo = Set_TableForYear(ws, y)
+        Set lo = Set_Table_ForYear(ws, y)
         
         If lo Is Nothing Then Exit For
         If lo.DataBodyRange Is Nothing Then Exit For
@@ -625,7 +586,7 @@ Public Sub Place_Checkbox(ws As Worksheet, ByVal rowIdx As Long, ByVal startYear
 
         Dim cell As Range
         
-        Set cell = Get_MonthColumn(lo, m).DataBodyRange.Cells(rowIdx, 1)
+        Set cell = Get_Month_Column(lo, m).DataBodyRange.Cells(rowIdx, 1)
 
         Delete_Checkbox ws, y, m, rowIdx
         cell.ClearContents
@@ -648,9 +609,9 @@ Public Sub Place_Checkbox(ws As Worksheet, ByVal rowIdx As Long, ByVal startYear
             tableName = MainTable & "_" & Right$(lo.Name, 4)
             
             If Right$(lo.Name, 4) = 2025 Then
-                Highlight_IfNoCheckbox ws, tableName, rowIdx, used2025
+                Highlight_If_NoCheckbox ws, tableName, rowIdx, used2025
             ElseIf Right$(lo.Name, 4) = 2026 Then
-                Highlight_IfNoCheckbox ws, tableName, rowIdx, used2026
+                Highlight_If_NoCheckbox ws, tableName, rowIdx, used2026
             End If
         End If
     Next lo
@@ -660,7 +621,7 @@ End Sub
 
 ' - Highlights Cells that do not contain Checkbox.
 ' - Color: #D9D9D9
-Public Sub Highlight_IfNoCheckbox(ws As Worksheet, ByVal tableName As String, ByVal rowIdx As Long, ByRef used() As Boolean)
+Public Sub Highlight_If_NoCheckbox(ws As Worksheet, ByVal tableName As String, ByVal rowIdx As Long, ByRef used() As Boolean)
 
     Dim lo As ListObject
     
@@ -711,11 +672,11 @@ End Sub
 
 
 ' ==============================================================================================================================================
-' ----------------------------------------------------------------- SHEET VISIBILITY -----------------------------------------------------------
+' ------------------------------------------------------------- SHEET VISIBILITY ---------------------------------------------------------------
 ' ==============================================================================================================================================
 
 ' - Builds a Row Signature for the given Row Index.
-Public Function Create_RowSignature(lo As ListObject, ByVal rowIdx As Long) As String
+Public Function Create_Row_Signature(lo As ListObject, ByVal rowIdx As Long) As String
 
     If Len(SIG_DELIM) = 0 Then SIG_DELIM = ChrW(&H241F)
     
@@ -737,14 +698,14 @@ Public Function Create_RowSignature(lo As ListObject, ByVal rowIdx As Long) As S
         End If
     Next j
     
-    Create_RowSignature = Join(parts, SIG_DELIM)
+    Create_Row_Signature = Join(parts, SIG_DELIM)
     
 End Function
 
 
 ' - Enforces Sheet visibility.
 ' - Shows: Last Row + 3
-Public Sub Set_SheetVisibility(ws As Worksheet, tableName As String)
+Public Sub Set_Visibility_ForSheet(ws As Worksheet, tableName As String)
 
     On Error GoTo SafeExit
 
@@ -761,14 +722,14 @@ Public Sub Set_SheetVisibility(ws As Worksheet, tableName As String)
     Dim lastDataRow As Long
     Dim Target As Long
     
-    lastDataRow = Find_LastTableRow(lo)
+    lastDataRow = Find_LastRow_InTable(lo)
     Target = lastDataRow + 3
 
     If lastVisibilityTarget = Target Then Exit Sub
     
     lastVisibilityTarget = Target
     
-    ws.Unprotect Password:=PASSWORD_PROTECT
+    ws.Unprotect Password:=pw_PASSWORD
     
     ws.Rows("1:" & Target).EntireRow.Hidden = False
     
@@ -807,7 +768,7 @@ Public Sub Refresh_Snapshot(ws As Worksheet, tableName As String)
     If lo.DataBodyRange Is Nothing Then Exit Sub
 
     For i = 1 To lo.ListRows.Count
-        prevMainSigs.Add Create_RowSignature(lo, i)
+        prevMainSigs.Add Create_Row_Signature(lo, i)
     Next i
     
     prevMainCount = lo.ListRows.Count
@@ -817,8 +778,8 @@ End Sub
 
 
 ' - Runs a public procedure.
-' - For: Set_SheetVisibility & Refresh_Snapshot.
-Public Sub RunSheetMacro(ByVal publicProc As String, ParamArray args() As Variant)
+' - For: Set_Visibility_ForSheet & Refresh_Snapshot.
+Public Sub Run_Macro(ByVal publicProc As String, ParamArray args() As Variant)
 
     Dim m As String
     
@@ -844,11 +805,11 @@ End Sub
 
 
 ' ==============================================================================================================================================
-' ----------------------------------------------------------------- SHEET PROTECTION -----------------------------------------------------------
+' ------------------------------------------------------------- SHEET PROTECTION ---------------------------------------------------------------
 ' ==============================================================================================================================================
 
 ' - Handles BANK Sheets protection.
-Public Sub Monitor_DynamicProtection(ByVal ws As Worksheet, ByVal Target As Range)
+Public Sub Monitor_Protection(ByVal ws As Worksheet, ByVal Target As Range)
 
     Dim monitorRange As Range
     
