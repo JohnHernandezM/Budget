@@ -1,70 +1,162 @@
 Private Sub Worksheet_Change(ByVal Target As Range)
     Dim watchCell As Range
+    Dim hitBank As Boolean, hitI4 As Boolean, hitI6 As Boolean
+    
     Set watchCell = Me.Range(LBL_rng_BANK_NAME)
-
-    ' Fast exit if the change didn’t touch the watch cell or was multi-cell
-    If Intersect(Target, watchCell) Is Nothing Then Exit Sub
-    If Target.CountLarge > 1 Then Exit Sub
-
+    hitBank = Not Intersect(Target, watchCell) Is Nothing
+    hitI4 = Not Intersect(Target, Me.Range("I4")) Is Nothing
+    hitI6 = Not Intersect(Target, Me.Range("I6")) Is Nothing
+    
+    If Not (hitBank Or hitI4 Or hitI6) Then Exit Sub
+    If Target.CountLarge > 1 Then
+        ' For multi-cell edits, still react based on current cell values.
+        ' (We’ll read the final values directly.)
+    End If
+    
     Dim prevEvents As Boolean
     prevEvents = Application.EnableEvents
     Application.EnableEvents = False
-
     On Error GoTo CleanUp
 
-    Dim key As String
-    key = SafeText(watchCell.Value)
-    If Len(key) = 0 Then
-        ' Nothing to match: clear fill and exit
-        ClearTabColor Me.Range(LBL_rng_TAB_COLOR)
-        GoTo CleanUp
-    End If
+    ' =======================
+    ' 1) ORIGINAL BEHAVIOR (watch LBL_rng_BANK_NAME)
+    ' =======================
+    If hitBank Then
+        Dim tbl As ListObject, ws As Worksheet, lr As ListRow
+        Dim key As String, found As Boolean
 
-    ' Locate the ListObject once
-    Dim tbl As ListObject
-    Set tbl = FindTableByName(LBL_lo_DATA_BANK_LOGO)
-    If tbl Is Nothing Then GoTo CleanUp
-
-    ' Ensure there is data
-    If tbl.DataBodyRange Is Nothing Then
-        ClearTabColor Me.Range(LBL_rng_TAB_COLOR)
-        GoTo CleanUp
-    End If
-
-    ' First column of the table (keys)
-    Dim keyCol As Range
-    Set keyCol = tbl.ListColumns(1).DataBodyRange
-
-    ' Try to match (exact)
-    Dim idx As Variant
-    idx = Application.Match(key, keyCol, 0)
-
-    Dim dest As Range
-    Set dest = Me.Range(LBL_rng_TAB_COLOR)
-
-    If IsError(idx) Then
-        ' Not found → clear fill
-        ClearTabColor dest
-    Else
-        ' Row found → take color from column 3 in that row
-        Dim srcCell As Range
-        Set srcCell = tbl.DataBodyRange.Rows(CLng(idx)).Cells(1, 3)
-
-        ' If color might be from CF, use DisplayFormat; else use Interior
-        On Error Resume Next
-        dest.Interior.Color = srcCell.DisplayFormat.Interior.Color
-        If Err.Number <> 0 Then
-            Err.Clear
-            dest.Interior.Color = srcCell.Interior.Color
+        key = SafeText(watchCell.Value)
+        
+        ' Find the ListObject named LBL_lo_DATA_BANK_LOGO anywhere in the workbook
+        Set tbl = FindTableByName(LBL_lo_DATA_BANK_LOGO)
+        If Not tbl Is Nothing Then
+            found = False
+            If Not tbl.DataBodyRange Is Nothing Then
+                Dim keyCol As Range, idx As Variant, dest As Range, srcCell As Range
+                Set keyCol = tbl.ListColumns(1).DataBodyRange
+                idx = Application.Match(key, keyCol, 0)
+                Set dest = Me.Range(LBL_rng_TAB_COLOR)
+                
+                If Not IsError(idx) Then
+                    Set srcCell = tbl.DataBodyRange.Rows(CLng(idx)).Cells(1, 3)
+                    On Error Resume Next
+                    dest.Interior.Color = srcCell.DisplayFormat.Interior.Color
+                    If Err.Number <> 0 Then
+                        Err.Clear
+                        dest.Interior.Color = srcCell.Interior.Color
+                    End If
+                    On Error GoTo CleanUp
+                    found = True
+                End If
+            End If
+            If Not found Then
+                ClearFill Me.Range(LBL_rng_TAB_COLOR)
+            End If
         End If
-        On Error GoTo CleanUp
     End If
+    
+    ' =======================
+    ' 2) NEW BEHAVIOR (watch I4 and I6)
+    ' =======================
+    Dim sI4 As String, sI6 As String
+    sI4 = Trim$(CStr(Me.Range("I4").Value))
+    sI6 = Trim$(CStr(Me.Range("I6").Value))
+    
+    ' ---- If I4 was cleared
+    If hitI4 And Len(sI4) = 0 Then
+        Me.Range("I6").ClearContents
+        ClearDV Me.Range("I8")          ' remove DV from I8
+        Me.Range("I8").ClearContents
+        RemoveShapesInCell Me.Range("H10")
+        GoTo AfterI4I6
+    End If
+    
+    ' ---- If I6 was cleared (independent rule)
+    If hitI6 And Len(sI6) = 0 Then
+        ClearDV Me.Range("I8")
+        Me.Range("I8").ClearContents
+        GoTo AfterI4I6
+    End If
+    
+    ' ---- If I4 changed to a specific option, perform the “reset” block for that mode
+    If hitI4 Then
+        Select Case sI4
+            Case "Agregar"
+                ' H6 = "En"
+                Me.Range("H6").Value = "En"
+                ' Clear I6 contents (keep its DV)
+                Me.Range("I6").ClearContents
+                ' Clear I8 + remove DV
+                ClearDV Me.Range("I8")
+                Me.Range("I8").ClearContents
+                ' Rebuild button in H10 (green, text Agregar)
+                RebuildActionButton Me.Range("H10"), "Agregar", RGB(25, 107, 36), RGB(25, 107, 36)
+                ' No OnAction yet; set later when I6 chosen
+                
+            Case "Eliminar"
+                ' H6 = "De"
+                Me.Range("H6").Value = "De"
+                ' Clear I6 contents (keep its DV)
+                Me.Range("I6").ClearContents
+                ' Clear I8 + remove DV
+                ClearDV Me.Range("I8")
+                Me.Range("I8").ClearContents
+                ' Rebuild button in H10 (red, text Eliminar)
+                RebuildActionButton Me.Range("H10"), "Eliminar", RGB(192, 0, 0), RGB(192, 0, 0)
+                ' No OnAction yet; set later when I6 chosen
+        End Select
+    End If
+    
+    ' ---- Now, regardless of which cell changed, apply the combination rules based on current values
+    sI4 = Trim$(CStr(Me.Range("I4").Value))
+    sI6 = Trim$(CStr(Me.Range("I6").Value))
+    
+    ' Try to get the button if it exists (created when I4 changed)
+    Dim shp As Shape
+    Set shp = Nothing
+    On Error Resume Next
+    Set shp = Me.Shapes("BTN_ADD_or_DEL_DV")
+    On Error GoTo CleanUp
+    
+    If sI4 = "Agregar" Then
+        ' Base state for Agregar was already set when I4 changed.
+        If StrComp(sI6, "Categoría", vbTextCompare) = 0 Then
+            If Not shp Is Nothing Then shp.OnAction = "Add_Category"
+        ElseIf StrComp(sI6, "De", vbTextCompare) = 0 Then
+            If Not shp Is Nothing Then shp.OnAction = "Add_De"
+        End If
+        
+    ElseIf sI4 = "Eliminar" Then
+        If StrComp(sI6, "Categoría", vbTextCompare) = 0 Then
+            ' I8 DV from DATA_BANK_CATEGORY (first column of DataBodyRange)
+            Dim srcCat As Range
+            Set srcCat = FirstColOfTable("DATA_BANK_CATEGORY")
+            If Not srcCat Is Nothing Then
+                ApplyListDV Me.Range("I8"), srcCat
+            End If
+            If Not shp Is Nothing Then shp.OnAction = "Del_Category"
+            
+        ElseIf StrComp(sI6, "De", vbTextCompare) = 0 Then
+            ' I8 DV from DATA_BANK_DE (first column)
+            Dim srcDe As Range
+            Set srcDe = FirstColOfTable("DATA_BANK_DE")
+            If Not srcDe Is Nothing Then
+                ApplyListDV Me.Range("I8"), srcDe
+            End If
+            If Not shp Is Nothing Then shp.OnAction = "Del_De"
+        End If
+    End If
+
+AfterI4I6:
+    ' Done
 
 CleanUp:
     Application.EnableEvents = prevEvents
 End Sub
 
-' ==== Helpers (place in the same sheet module or a standard module) ====
+' ============================
+' ===== Helper routines ======
+' ============================
 
 Private Function SafeText(ByVal v As Variant) As String
     If IsError(v) Then
@@ -74,12 +166,9 @@ Private Function SafeText(ByVal v As Variant) As String
     End If
 End Function
 
-Private Sub ClearTabColor(ByVal rng As Range)
+Private Sub ClearFill(ByVal rng As Range)
     With rng.Interior
         .Pattern = xlNone
-        ' Alternative full clear:
-        ' .Pattern = xlSolid
-        ' .ColorIndex = xlColorIndexNone
     End With
 End Sub
 
@@ -95,5 +184,76 @@ Private Function FindTableByName(ByVal loName As String) As ListObject
             Exit Function
         End If
     Next ws
-    ' Nothing found → Nothing
 End Function
+
+Private Sub ClearDV(ByVal rng As Range)
+    On Error Resume Next
+    If rng.Validation.Type <> xlValidateInputOnly Then
+        rng.Validation.Delete
+    End If
+    On Error GoTo 0
+End Sub
+
+Private Sub RemoveShapesInCell(ByVal cell As Range)
+    Dim i As Long
+    For i = Me.Shapes.Count To 1 Step -1
+        With Me.Shapes(i)
+            If Not .TopLeftCell Is Nothing Then
+                If .TopLeftCell.Address = cell.Address Then
+                    .Delete
+                End If
+            End If
+        End With
+    Next i
+    ' Also remove by the specific name if it exists anywhere
+    On Error Resume Next
+    Me.Shapes("BTN_ADD_or_DEL_DV").Delete
+    On Error GoTo 0
+End Sub
+
+Private Function RebuildActionButton(ByVal cell As Range, _
+                                     ByVal caption As String, _
+                                     ByVal fillRGB As Long, _
+                                     ByVal lineRGB As Long) As Shape
+    ' Remove any previous shape in the cell and named control
+    RemoveShapesInCell cell
+    
+    Dim shp As Shape
+    Set shp = Me.Shapes.AddShape(Type:=msoShapeRoundedRectangle, _
+                                 Left:=cell.Left, Top:=cell.Top, _
+                                 Width:=cell.Width, Height:=cell.Height)
+    With shp
+        .Name = "BTN_ADD_or_DEL_DV"
+        .TextFrame2.TextRange.Characters.Text = caption
+        With .TextFrame2.TextRange.Font
+            .Bold = msoTrue
+            .Size = 10
+            .Fill.ForeColor.RGB = RGB(255, 255, 255) ' font color white
+        End With
+        .TextFrame2.VerticalAnchor = msoAnchorMiddle
+        .TextFrame2.TextRange.ParagraphFormat.Alignment = msoAlignCenter
+        
+        .Fill.ForeColor.RGB = fillRGB
+        .Line.ForeColor.RGB = lineRGB
+    End With
+    Set RebuildActionButton = shp
+End Function
+
+Private Function FirstColOfTable(ByVal loName As String) As Range
+    Dim lo As ListObject
+    Set lo = FindTableByName(loName)
+    If Not lo Is Nothing Then
+        If Not lo.DataBodyRange Is Nothing Then
+            ' Assumes the list is in the first column of the table
+            Set FirstColOfTable = lo.ListColumns(1).DataBodyRange
+        End If
+    End If
+End Function
+
+Private Sub ApplyListDV(ByVal target As Range, ByVal src As Range)
+    ' Apply a list DV that references the source range (fully qualified address)
+    Dim addr As String
+    addr = "=" & src.Address(RowAbsolute:=True, ColumnAbsolute:=True, ReferenceStyle:=xlA1, External:=True)
+    ClearDV target
+    target.Validation.Add Type:=xlValidateList, AlertStyle:=xlValidAlertStop, Operator:=xlBetween, Formula1:=addr
+End Sub
