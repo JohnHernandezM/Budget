@@ -1,58 +1,52 @@
-Option Explicit
-
 ' ==============================================================================================================================================
 ' --------------------------------------------------------------------- + ----------------------------------------------------------------------
 ' ==============================================================================================================================================
+' - Main Sheet.
+' - Adds new Banking Sheet.
 
-' - Adds Banking Sheet.
 Private Sub Worksheet_Change(ByVal Target As Range)
 
-    On Error GoTo CleanUp
-
-    If Intersect(Target, Me.Range(LBL_rng_BANK_NAME)) Is Nothing Then Exit Sub
-
-    Dim prevEvents As Boolean
-    prevEvents = Application.EnableEvents
+    Dim watchCell As Range
+    Set watchCell = Me.Range("C2")
+    
+    If Intersect(Target, watchCell) Is Nothing Then Exit Sub
     
     Application.EnableEvents = False
-
-    Dim key As String
-    key = Trim$(CStr(Me.Range(LBL_rng_BANK_NAME).Value))
-
-    If Len(key) = 0 Then
-        Me.Range(LBL_rng_TAB_COLOR).Interior.ColorIndex = xlColorIndexNone
-        GoTo CleanUp
-    End If
-
+    
+    On Error GoTo CleanUp
+    
     Dim tbl As ListObject
-    Set tbl = Find_BankTable(LBL_lo_DATA_BANK_LOGO)
-
-    If tbl Is Nothing Then
-        Me.Range(LBL_rng_TAB_COLOR).Interior.ColorIndex = xlColorIndexNone
-        GoTo CleanUp
-    End If
-
-    If tbl.ListRows.Count = 0 Then
-        Me.Range(LBL_rng_TAB_COLOR).Interior.ColorIndex = xlColorIndexNone
-        GoTo CleanUp
-    End If
-
-    Dim firstCol As Range
-    Set firstCol = tbl.ListColumns(col_DATA_BANK_LOGO_NAME).DataBodyRange
-
-    Dim hit As Range
-    Set hit = firstCol.Find(What:=key, LookIn:=xlValues, LookAt:=xlWhole, _
-                            SearchOrder:=xlByRows, SearchDirection:=xlNext, MatchCase:=False)
-
-    With Me.Range(LBL_rng_TAB_COLOR).Interior
-        If Not hit Is Nothing Then
-            .Color = hit.Offset(0, col_DATA_BANK_LOGO_TAB - col_DATA_BANK_LOGO_NAME).Interior.Color
-        Else
-            .ColorIndex = xlColorIndexNone
+    Dim ws As Worksheet
+    Dim lr As ListRow
+    Dim key As String
+    Dim found As Boolean
+    
+    key = Trim(CStr(watchCell.Value))
+    
+    For Each ws In ThisWorkbook.Worksheets
+        On Error Resume Next
+        Set tbl = ws.ListObjects("Data_Bank_Logo")
+        On Error GoTo 0
+        If Not tbl Is Nothing Then Exit For
+    Next ws
+    
+    If tbl Is Nothing Then GoTo CleanUp
+    
+    found = False
+    
+    For Each lr In tbl.ListRows
+        If Trim(CStr(lr.Range.Cells(1, 1).Value)) = key Then
+            Me.Range("C6").Interior.Color = lr.Range.Cells(1, 3).Interior.Color
+            found = True
+            Exit For
         End If
-    End With
+    Next lr
+    
+    If Not found Then
+        Me.Range("C6").Interior.Pattern = xlNone
+    End If
 
 CleanUp:
-    Application.EnableEvents = prevEvents
+    Application.EnableEvents = True
     
 End Sub
