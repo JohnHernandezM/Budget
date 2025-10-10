@@ -1,7 +1,104 @@
-Public Function Validate_InputNumber(ByVal v As Variant) As Boolean
-    If IsEmpty(v) Then Exit Function
-    Dim s As String: s = Trim$(CStr(v))
-    If InStr(s, " ") > 0 Then Exit Function
-    If Not IsNumeric(s) Then Exit Function
-    Validate_InputNumber = (CDbl(s) > 0)
-End Function
+I NEED A VBA CODE THAT: 
+
+INSIDE MY SHEET CALLED "+", WATCHES FOR CHANGES IN CELL I4 AND I6. 
+
+CELL I4 CONTAINS A DROPDOWN WITH TWO OPTIONS: "Agregar" OR "Eliminar". 
+
+**** IF I4 IS "Agregar" THEN: 
+- SET H6 CONTENT TO "En" WITHOUT CHANGING ANY FORMAT. 
+- CLEAR I6 CONTENT WITHOUT REMOVING DATA VALIDATION. 
+- CLEAR I8 CONTENT AND REMOVE ANY DATA VALIDATION FROM IT. 
+- REMOVE ANY SHAPE BUTTON LOCATED IN CELL H10. 
+- CREATE SHAPE BUTTON IN CELL H10 WITH THE FOLLOWING DETAILS: 
+Rounded Rectangle
+Name: BTN_ADD_or_DEL_DV
+Text: Agregar
+Bold: msoTrue
+Font Size: 10
+Font Color: White
+Fill Color: RGB(25, 107, 36)
+Line Color: RGB(25, 107, 36)
+Other: msoAnchorMiddle and msoAlignCenter
+
+**** IF I4 IS "Agregar" AND I6 IS "Categoría" THEN 
+- FOR SHAPE LOCATED IN H10 SET .OnAction = Add_Category
+
+**** IF I4 IS "Agregar" AND I6 IS "De" THEN 
+- FOR SHAPE LOCATED IN H10 SET .OnAction = Add_De
+
+**** IF I4 IS "Eliminar" THEN: 
+- SET H6 CONTENT TO "De" WITHOUT CHANGING ANY FORMAT. 
+- CLEAR I6 CONTENT WITHOUT REMOVING DATA VALIDATION. 
+- CLEAR I8 CONTENT AND REMOVE ANY DATA VALIDATION FROM IT. 
+- REMOVE ANY SHAPE BUTTON LOCATED IN CELL H10. 
+- CREATE SHAPE BUTTON IN CELL H10 WITH THE FOLLOWING DETAILS: 
+Rounded Rectangle
+Name: BTN_ADD_or_DEL_DV
+Text: Eliminar
+Bold: msoTrue
+Font Size: 10
+Font Color: White
+Fill Color: RGB(192, 0, 0)
+Line Color: RGB(192, 0, 0)
+Other: msoAnchorMiddle and msoAlignCenter
+
+**** IF I4 IS "Eliminar" AND I6 IS "Categoría" THEN: 
+- APPLY DATA VALIDATION DROPDOWN LIST TO CELL I8. 
+- THE DROPDOWN MUST CONTAIN THE DATA BODY OF TABLE "DATA_BANK_CATEGORY".
+- FOR SHAPE LOCATED IN H10 SET .OnAction = Del_Category
+
+**** IF I4 IS "Eliminar" AND I6 IS "De" THEN: 
+- APPLY DATA VALIDATION DROPDOWN LIST TO CELL I8. 
+- THE DROPDOWN MUST CONTAIN THE DATA BODY OF TABLE "DATA_BANK_DE".
+- FOR SHAPE LOCATED IN H10 SET .OnAction = Del_De 
+
+**** IF I4 GETS CLEARED THEN: 
+- CLEAR I6 AND I8. 
+- REMOVE ANY DATA VALIDATION LOCATED IN CELL I8. 
+
+**** IF I6 GETS CLEARED THEN:
+- CLEAR I8. 
+- REMOVE ANY DATA VALIDATION LOCATED IN CELL I8. 
+
+
+
+NOW, PLEASE ALSO HELP BE TO BUILD Add_Category()
+WHEN USER CLICKS ON SHAPE BUTTON LOCATED IN H10, IF I4 IS "Agregar", IF I6 IS "Categoría" AND I8 IS NOT EMPTY, THEN: 
+- READ VALUE FROM I8. 
+- IF VALUE FROM I8 DOES NOT EXIST IN THE DATA BODY OF TABLE "DATA_BANK_CATEGORY" THEN ADD THIS VALUE TO THAT TABLE IN THE LAST ROW. 
+- BEFORE ADDING, PLEASE MAKE SURE TO USE PROPER CAPITALIZATION. 
+- AFTER ADDING VALUE TO TABLE: 
+FOR EVERY EXISTING SHEET NAMED OTHER THAN "+", "Data" OR "HOME": 
+(*) Call Set_MainTable(ws) to get the Main Table Name. 
+(*) SearcH for Table named MainTable (public String). 
+(*) In column "CATEGORÍA" of that table, update the data validation dropdown to the data body of table "DATA_BANK_CATEGORY" WITHOUT removing current cell contents. 
+
+NOW, PLEASE ALSO HELP BE TO BUILD Add_De()
+WHEN USER CLICKS ON SHAPE BUTTON LOCATED IN H10, IF I4 IS "Agregar", IF I6 IS "De" AND I8 IS NOT EMPTY, THEN: 
+- READ VALUE FROM I8. 
+- IF VALUE FROM I8 DOES NOT EXIST IN THE DATA BODY OF TABLE "DATA_BANK_DE" THEN ADD THIS VALUE TO THAT TABLE IN THE LAST ROW. 
+- BEFORE ADDING, PLEASE MAKE SURE TO USE PROPER CAPITALIZATION. 
+- AFTER ADDING VALUE TO TABLE: 
+FOR EVERY EXISTING SHEET NAMED OTHER THAN "+", "Data" OR "HOME": 
+(*) Call Set_MainTable(ws) to get the Main Table Name. 
+(*) Search for Table named MainTable (public String). 
+(*) In column "DE" of that table, update the data validation dropdown to the data body of table "DATA_BANK_DE" WITHOUT removing current cell contents. 
+
+NOW, PLEASE ALSO HELP BE TO BUILD Del_Category()
+WHEN USER CLICKS ON SHAPE BUTTON LOCATED IN H10, IF I4 IS "Eliminar", IF I6 IS "Categoría" AND I8 IS NOT EMPTY, THEN:
+- READ VALUE FROM I8. 
+- IF VALUE FROM I8 EXISTS IN THE DATA BODY OF TABLE "DATA_BANK_CATEGORY" THEN REMOVE TABLE ROW THAT CONTAINS THAT VALUE. 
+FOR EVERY EXISTING SHEET NAMED OTHER THAN "+", "Data" OR "HOME": 
+(*) Call Set_MainTable(ws) to get the Main Table Name. 
+(*) Search for Table named MainTable (public String). 
+(*) In column "CATEGORÍA" of that table, update the data validation dropdown to the data body of table "DATA_BANK_CATEGORY" WITHOUT removing current cell contents. 
+
+NOW, PLEASE ALSO HELP BE TO BUILD De()
+WHEN USER CLICKS ON SHAPE BUTTON LOCATED IN H10, IF I4 IS "Eliminar", IF I6 IS "De" AND I8 IS NOT EMPTY, THEN:
+- READ VALUE FROM I8. 
+- IF VALUE FROM I8 EXISTS IN THE DATA BODY OF TABLE "DATA_BANK_DE" THEN REMOVE TABLE ROW THAT CONTAINS THAT VALUE. 
+FOR EVERY EXISTING SHEET NAMED OTHER THAN "+", "Data" OR "HOME": 
+(*) Call Set_MainTable(ws) to get the Main Table Name. 
+(*) Search for Table named MainTable (public String). 
+(*) In column "DE" of that table, update the data validation dropdown to the data body of table "DATA_BANK_DE" WITHOUT removing current cell contents. 
+
