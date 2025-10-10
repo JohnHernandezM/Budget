@@ -49,7 +49,7 @@ Public Sub Install_BTN_AddRow()
     If loMain Is Nothing Then GoTo CleanExit
 
     Move_AddButton ws, loMain
-    RunSheetMacro "Set_SheetVisibility", ws, MainTable
+    Run_Macro "Set_Visibility_ForSheet", ws, MainTable
 
 CleanExit:
     Application.ScreenUpdating = prevScreen
@@ -95,7 +95,7 @@ Public Sub Add_Row()
     Dim rMain As ListRow, rY1 As ListRow, rY2 As ListRow
     Dim prevMainCount As Long
     
-    ws.Unprotect Password:=PASSWORD_PROTECT
+    ws.Unprotect Password:=pw_PASSWORD
     
     prevMainCount = IIf(loMain.DataBodyRange Is Nothing, 0, loMain.ListRows.Count)
 
@@ -117,8 +117,8 @@ Public Sub Add_Row()
     rY1.Range.ClearFormats
     rY2.Range.ClearFormats
 
-    RunSheetMacro "Set_SheetVisibility", ws, loMain.Name
-    RunSheetMacro "Refresh_Snapshot", ws, loMain.Name
+    Run_Macro "Set_Visibility_ForSheet", ws, loMain.Name
+    Run_Macro "Refresh_Snapshot", ws, loMain.Name
     Move_AddButton ws, loMain
     
     'NEW
@@ -142,11 +142,11 @@ End Sub
 
 ' - Creates or re-creates the Add Row Button.
 ' - Position: Specific Row in Column B.
-Public Sub Place_AddButtonAtRow(ByVal targetRow As Long, ws As Worksheet)
+Public Sub Place_AddButton_AtRow(ByVal targetRow As Long, ws As Worksheet)
 
     Dim t As Range: Set t = ws.Range("B" & targetRow)
 
-    If Check_ShapeExists("BTN_AddRow", ws) Then
+    If Check_Shape_Exists("BTN_AddRow", ws) Then
         With ws.Shapes("BTN_AddRow")
             If .TopLeftCell.Address = t.Address Then
                 .OnAction = "Add_Row"
@@ -236,7 +236,7 @@ End Sub
 
 ' - Checks that the Add Row Button sits at the right place.
 ' - Position: Last Row + 2 in Column B.
-Public Sub Check_AddButtonPosition(ws As Worksheet, ByVal lo As ListObject)
+Public Sub Check_AddButton_Position(ws As Worksheet, ByVal lo As ListObject)
     
     On Error Resume Next
     
@@ -247,10 +247,10 @@ Public Sub Check_AddButtonPosition(ws As Worksheet, ByVal lo As ListObject)
     Dim lastDataRow As Long
     Dim btnRow As Long
     
-    lastDataRow = Find_LastTableRow(lo)
+    lastDataRow = Find_LastRow_InTable(lo)
     btnRow = lastDataRow + 2
 
-    If Check_ShapeExists("BTN_AddRow", ws) Then
+    If Check_Shape_Exists("BTN_AddRow", ws) Then
         With ws.Shapes("BTN_AddRow")
             If .TopLeftCell.Row <> btnRow Or .TopLeftCell.Column <> 2 Then
                 .Top = ws.Cells(btnRow, 2).Top
@@ -260,7 +260,7 @@ Public Sub Check_AddButtonPosition(ws As Worksheet, ByVal lo As ListObject)
             End If
         End With
     Else
-        Place_AddButtonAtRow btnRow, ws
+        Place_AddButton_AtRow btnRow, ws
     End If
     
 End Sub
@@ -276,7 +276,7 @@ Public Sub Move_AddButton(ByVal ws As Worksheet, ByVal loMain As ListObject)
     Dim targetCell As Range
     Dim shp As Shape
     
-    lastDataRow = Find_LastTableRow(loMain)
+    lastDataRow = Find_LastRow_InTable(loMain)
     btnRow = lastDataRow + 2
     
     Set targetCell = ws.Cells(btnRow, 2)
