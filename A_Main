@@ -1,6 +1,44 @@
 Option Explicit
 
 ' ==============================================================================================================================================
+' ------------------------------------------------------------- LABELS -------------------------------------------------------------------------
+' ==============================================================================================================================================
+
+' -------------------------------------------------------------------------------------------------------- Worksheet: +
+
+' - Sheet.
+Public Const LBL_ws_PLUS                As String = "+"
+
+' - Ranges: New Sheet.
+Public Const LBL_rng_BANK_NAME          As String = "D4"
+Public Const LBL_rng_SHEET_NAME         As String = "D6"
+Public Const LBL_rng_TAB_COLOR          As String = "D8"
+Public Const LBL_rng_BTN_ADD_SHEET      As String = "C10"               ' Button.
+
+' - Ranges: Add Data Validation.
+
+Public Const LBL_rng_CATEGORY_NAME      As String = "J4"
+Public Const LBL_rng_DE_NAME            As String = "J6"
+Public Const LBL_rng_BTN_ADD_DV         As String = "I10"               ' Button.
+
+' - Buttons.
+Public Const LBL_BTN_ADD_SHEET          As String = "Crear"             ' New Sheet.
+Public Const LBL_BTN_ADD_DV             As String = "Agregar"           ' Data Validation.
+
+
+
+' -------------------------------------------------------------------------------------------------------- Worksheet: Banking
+Public Const LBL_col_CUOTAS         As String = "CUOTAS"
+Public Const LBL_col_M              As String = "[ M ]"
+Public Const LBL_col_A              As String = "[ A ]"
+
+
+' -------------------------------------------------------------------------------------------------------- Worksheet: Data
+Public Const LBL_lo_DATA_BANK_LOGO  As String = "DATA_BANK_LOGO"
+
+
+
+' ==============================================================================================================================================
 ' ------------------------------------------------------------- DECLARATIONS -------------------------------------------------------------------
 ' ==============================================================================================================================================
 
@@ -10,20 +48,22 @@ Option Explicit
 
 Public Const pw_PASSWORD            As String = "jh"
 
-' ----
-' MAIN
-' ----
+' ---------
+' VARIABLES
+' ---------
 
 Public MainTable                    As String
 Public Install_InSheet              As String
 
-' ------
-' LOCATE
-' ------
+Public MONTHS                       As Variant
 
-Public Const LBL_col_CUOTAS         As String = "CUOTAS"
-Public Const LBL_col_M              As String = "[ M ]"
-Public Const LBL_col_A              As String = "[ A ]"
+Public prevMainCount                As Long
+Public lastVisibilityTarget         As Long
+Public lastKnownListRowsCount       As Long
+
+Public prevMainSigs                 As Collection
+
+Public SIG_DELIM                    As String
 
 ' ------
 ' COLORS
@@ -58,20 +98,6 @@ Public Const B_IJ_Header_Fill       As Long = 34
 Public Const R_IJ_FirstRow_Fill     As Long = 193
 Public Const G_IJ_FirstRow_Fill     As Long = 240
 Public Const B_IJ_FirstRow_Fill     As Long = 200
-
-' ---------
-' VARIABLES
-' ---------
-
-Public MONTHS                       As Variant
-
-Public prevMainCount                As Long
-Public lastVisibilityTarget         As Long
-Public lastKnownListRowsCount       As Long
-
-Public prevMainSigs                 As Collection
-
-Public SIG_DELIM                    As String
 
 
 
