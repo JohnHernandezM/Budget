@@ -7,7 +7,7 @@ Option Explicit
 Public Sub Lock_Sheet_Plus()
 
     Dim ws As Worksheet
-    Set ws = ThisWorkbook.Worksheets("+")
+    Set ws = ThisWorkbook.Worksheets(LBL_ws_PLUS)
     
     ' Remove any existing protection first
     On Error Resume Next
@@ -18,7 +18,9 @@ Public Sub Lock_Sheet_Plus()
     ws.Cells.Locked = True
     
     ' Unlock the cells that must stay editable
-    ws.Range("C2,C4,C6").Locked = False
+    ws.Range(LBL_rng_BANK_NAME).Locked = False
+    ws.Range(LBL_rng_SHEET_NAME).Locked = False
+    ws.Range(LBL_rng_TAB_COLOR).Locked = False
     
     ' Protect the sheet
     ws.Protect Password:="jh", _
