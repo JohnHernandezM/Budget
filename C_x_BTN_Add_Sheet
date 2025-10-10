@@ -69,7 +69,7 @@ Public Sub Add_Sheet()
         Exit Sub
     End If
 
-    If Check_SheetExists(newName) Then
+    If Check_Sheet_Exists(newName) Then
         MsgBox "Una Hoja llamada '" & newName & "' ya existe.", vbCritical
         wsPlus.Range("C4").ClearContents
         Exit Sub
@@ -86,7 +86,7 @@ Public Sub Add_Sheet()
 
     Call Set_MainTable(wsNew)
 
-    Build_NewSheet wsNew
+    Build_New_Sheet wsNew
 
     On Error Resume Next
     
@@ -125,7 +125,7 @@ End Sub
 ' ==============================================================================================================================================
 
 ' - Builds the New Sheet.
-Public Sub Build_NewSheet(ByVal ws As Worksheet)
+Public Sub Build_New_Sheet(ByVal ws As Worksheet)
 
     Dim loMain As ListObject, lo2025 As ListObject, lo2026 As ListObject
     Dim prevSheet As Worksheet
@@ -167,7 +167,7 @@ Public Sub Build_NewSheet(ByVal ws As Worksheet)
 
     ws.Range("B6").Resize(1, 9).Value = Array("FECHA", "DE", "CATEGORÍA", "DESCRIPCIÓN", "MONTO", "CUOTAS", "MONTO CUOTA", "[ M ]", "[ A ]")
 
-    Set loMain = Add_Table(ws, "B6:J7", Get_MainTableName(), "TableStyleMedium5")
+    Set loMain = Add_Table(ws, "B6:J7", Get_Name_MainTable(), "TableStyleMedium5")
 
     With ws.Range("B6:J6")
         .Interior.Color = RGB(R_Header_Fill, G_Header_Fill, B_Header_Fill)
@@ -194,7 +194,7 @@ Public Sub Build_NewSheet(ByVal ws As Worksheet)
 
     ws.Range("L6").Resize(1, 12).Value = Array("ENE", "FEB", "MAR", "ABR", "MAY", "JUN", "JUL", "AGO", "SEP", "OCT", "NOV", "DIC")
     
-    Set lo2025 = Add_Table(ws, "L6:W7", Get_MainTableName() & "_2025", "TableStyleMedium5")
+    Set lo2025 = Add_Table(ws, "L6:W7", Get_Name_MainTable() & "_2025", "TableStyleMedium5")
     
     lo2025.ShowAutoFilter = False
     
@@ -206,7 +206,7 @@ Public Sub Build_NewSheet(ByVal ws As Worksheet)
 
     ws.Range("Y6").Resize(1, 12).Value = ws.Range("L6").Resize(1, 12).Value
     
-    Set lo2026 = Add_Table(ws, "Y6:AJ7", Get_MainTableName() & "_2026", "TableStyleMedium5")
+    Set lo2026 = Add_Table(ws, "Y6:AJ7", Get_Name_MainTable() & "_2026", "TableStyleMedium5")
     
     lo2026.ShowAutoFilter = False
     
@@ -216,7 +216,7 @@ Public Sub Build_NewSheet(ByVal ws As Worksheet)
         .Font.Bold = True
     End With
 
-    Call Apply_LayoutFromTable(ws, "Data", "Data_Bank_Layout")
+    Call Apply_Layout_From_Table(ws, "Data", "Data_Bank_Layout")
 
     ws.Rows("11:" & ws.Rows.Count).EntireRow.Hidden = True
     ws.Range("AL1:XFD1").EntireColumn.Hidden = True
@@ -239,11 +239,11 @@ End Sub
 
 
 ' - Gets Main Table Name.
-Public Function Get_MainTableName() As String
+Public Function Get_Name_MainTable() As String
 
     On Error Resume Next
     If Len(MainTable) = 0 Then MainTable = "MainTable"
-    Get_MainTableName = MainTable
+    Get_Name_MainTable = MainTable
     
 End Function
 
@@ -314,12 +314,12 @@ End Sub
 
 
 ' - Checks if a Sheets already exists with the input Name.
-Public Function Check_SheetExists(ByVal sheetName As String) As Boolean
+Public Function Check_Sheet_Exists(ByVal sheetName As String) As Boolean
 
     Dim ws As Worksheet
     On Error Resume Next
     Set ws = ThisWorkbook.Worksheets(sheetName)
-    Check_SheetExists = Not ws Is Nothing
+    Check_Sheet_Exists = Not ws Is Nothing
     On Error GoTo 0
     
 End Function
@@ -327,7 +327,7 @@ End Function
 
 ' - Reads from Data Sheet.
 ' - Table: Data_Bank_Layout.
-Public Function Apply_LayoutFromTable(ByVal wsTarget As Worksheet, Optional ByVal layoutSheetName As String = "Data", Optional ByVal tableName As String = "Data_Bank_Layout") As Boolean
+Public Function Apply_Layout_From_Table(ByVal wsTarget As Worksheet, Optional ByVal layoutSheetName As String = "Data", Optional ByVal tableName As String = "Data_Bank_Layout") As Boolean
 
     On Error GoTo EH
 
@@ -360,11 +360,11 @@ Public Function Apply_LayoutFromTable(ByVal wsTarget As Worksheet, Optional ByVa
         End If
     Next r
 
-    Apply_LayoutFromTable = True
+    Apply_Layout_From_Table = True
     
     Exit Function
 EH:
-    Apply_LayoutFromTable = False
+    Apply_Layout_From_Table = False
     
 End Function
 
