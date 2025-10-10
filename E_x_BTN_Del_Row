@@ -30,7 +30,7 @@ Public Sub Install_BTN_DelRow()
     
     On Error Resume Next
     
-    ws.Unprotect Password:=PASSWORD_PROTECT
+    ws.Unprotect Password:=pw_PASSWORD
     
     For i = ws.Shapes.Count To 1 Step -1
         If ws.Shapes(i).Name = "BTN_DelRow" Then ws.Shapes(i).Delete
@@ -51,7 +51,7 @@ Public Sub Install_BTN_DelRow()
     If loMain Is Nothing Then GoTo CleanExit
 
     Move_DelButton ws, loMain
-    RunSheetMacro "Set_SheetVisibility", ws, MainTable
+    Run_Macro "Set_Visibility_ForSheet", ws, MainTable
     
     Update_Protection_BANK ws
 
@@ -135,7 +135,7 @@ Public Sub Del_Row()
         Exit Sub
     End If
     
-    ws.Unprotect Password:=PASSWORD_PROTECT
+    ws.Unprotect Password:=pw_PASSWORD
     
     Dim i As Long
     Dim deletedCount As Long
@@ -149,9 +149,9 @@ Public Sub Del_Row()
         End If
     Next i
     
-    Sync_Delete_MainRows_ToYearTables ws
-    RunSheetMacro "Set_SheetVisibility", ws, loMain.Name
-    RunSheetMacro "Refresh_Snapshot", ws, loMain.Name
+    Sync_Deletion_MainTable_To_YearTables ws
+    Run_Macro "Set_Visibility_ForSheet", ws, loMain.Name
+    Run_Macro "Refresh_Snapshot", ws, loMain.Name
     Move_DelButton ws, loMain
     
     Update_Protection_BANK ws
@@ -173,11 +173,11 @@ End Sub
 
 ' - Creates or re-creates the Delete Row Button.
 ' - Position: Specific Row in Column B.
-Public Sub Place_DelButtonAtRow(ByVal targetRow As Long, ws As Worksheet)
+Public Sub Place_DelButton_AtRow(ByVal targetRow As Long, ws As Worksheet)
 
     Dim t As Range: Set t = ws.Range("B" & targetRow)
 
-    If Check_ShapeExists("BTN_DelRow", ws) Then
+    If Check_Shape_Exists("BTN_DelRow", ws) Then
         With ws.Shapes("BTN_DelRow")
             If .TopLeftCell.Address = t.Address Then
                 .OnAction = "Del_Row"
@@ -267,7 +267,7 @@ End Sub
 
 ' - Checks that the Delete Row Button sits at the right place.
 ' - Position: Last Row + 2 in Column B.
-Public Sub Check_DelButtonPosition(ws As Worksheet, ByVal lo As ListObject)
+Public Sub Check_DelButton_Position(ws As Worksheet, ByVal lo As ListObject)
     
     On Error Resume Next
     
@@ -278,10 +278,10 @@ Public Sub Check_DelButtonPosition(ws As Worksheet, ByVal lo As ListObject)
     Dim lastDataRow As Long
     Dim btnRow As Long
     
-    lastDataRow = Find_LastTableRow(lo)
+    lastDataRow = Find_LastRow_InTable(lo)
     btnRow = lastDataRow + 2
 
-    If Check_ShapeExists("BTN_DelRow", ws) Then
+    If Check_Shape_Exists("BTN_DelRow", ws) Then
         With ws.Shapes("BTN_DelRow")
             If .TopLeftCell.Row <> btnRow Or .TopLeftCell.Column <> 2 Then
                 .Top = ws.Cells(btnRow, 2).Top
@@ -291,7 +291,7 @@ Public Sub Check_DelButtonPosition(ws As Worksheet, ByVal lo As ListObject)
             End If
         End With
     Else
-        Place_DelButtonAtRow btnRow, ws
+        Place_DelButton_AtRow btnRow, ws
     End If
     
 End Sub
@@ -307,7 +307,7 @@ Public Sub Move_DelButton(ByVal ws As Worksheet, ByVal loMain As ListObject)
     Dim targetCell As Range
     Dim shp As Shape
     
-    lastDataRow = Find_LastTableRow(loMain)
+    lastDataRow = Find_LastRow_InTable(loMain)
     btnRow = lastDataRow + 2
     
     Set targetCell = ws.Cells(btnRow, 2)
