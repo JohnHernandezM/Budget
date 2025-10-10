@@ -1,0 +1,99 @@
+Private Sub Worksheet_Change(ByVal Target As Range)
+    Dim watchCell As Range
+    Set watchCell = Me.Range(LBL_rng_BANK_NAME)
+
+    ' Fast exit if the change didn’t touch the watch cell or was multi-cell
+    If Intersect(Target, watchCell) Is Nothing Then Exit Sub
+    If Target.CountLarge > 1 Then Exit Sub
+
+    Dim prevEvents As Boolean
+    prevEvents = Application.EnableEvents
+    Application.EnableEvents = False
+
+    On Error GoTo CleanUp
+
+    Dim key As String
+    key = SafeText(watchCell.Value)
+    If Len(key) = 0 Then
+        ' Nothing to match: clear fill and exit
+        ClearTabColor Me.Range(LBL_rng_TAB_COLOR)
+        GoTo CleanUp
+    End If
+
+    ' Locate the ListObject once
+    Dim tbl As ListObject
+    Set tbl = FindTableByName(LBL_lo_DATA_BANK_LOGO)
+    If tbl Is Nothing Then GoTo CleanUp
+
+    ' Ensure there is data
+    If tbl.DataBodyRange Is Nothing Then
+        ClearTabColor Me.Range(LBL_rng_TAB_COLOR)
+        GoTo CleanUp
+    End If
+
+    ' First column of the table (keys)
+    Dim keyCol As Range
+    Set keyCol = tbl.ListColumns(1).DataBodyRange
+
+    ' Try to match (exact)
+    Dim idx As Variant
+    idx = Application.Match(key, keyCol, 0)
+
+    Dim dest As Range
+    Set dest = Me.Range(LBL_rng_TAB_COLOR)
+
+    If IsError(idx) Then
+        ' Not found → clear fill
+        ClearTabColor dest
+    Else
+        ' Row found → take color from column 3 in that row
+        Dim srcCell As Range
+        Set srcCell = tbl.DataBodyRange.Rows(CLng(idx)).Cells(1, 3)
+
+        ' If color might be from CF, use DisplayFormat; else use Interior
+        On Error Resume Next
+        dest.Interior.Color = srcCell.DisplayFormat.Interior.Color
+        If Err.Number <> 0 Then
+            Err.Clear
+            dest.Interior.Color = srcCell.Interior.Color
+        End If
+        On Error GoTo CleanUp
+    End If
+
+CleanUp:
+    Application.EnableEvents = prevEvents
+End Sub
+
+' ==== Helpers (place in the same sheet module or a standard module) ====
+
+Private Function SafeText(ByVal v As Variant) As String
+    If IsError(v) Then
+        SafeText = vbNullString
+    Else
+        SafeText = Trim$(CStr(v))
+    End If
+End Function
+
+Private Sub ClearTabColor(ByVal rng As Range)
+    With rng.Interior
+        .Pattern = xlNone
+        ' Alternative full clear:
+        ' .Pattern = xlSolid
+        ' .ColorIndex = xlColorIndexNone
+    End With
+End Sub
+
+Private Function FindTableByName(ByVal loName As String) As ListObject
+    Dim ws As Worksheet
+    Dim lo As ListObject
+    For Each ws In ThisWorkbook.Worksheets
+        On Error Resume Next
+        Set lo = ws.ListObjects(loName)
+        On Error GoTo 0
+        If Not lo Is Nothing Then
+            Set FindTableByName = lo
+            Exit Function
+        End If
+    Next ws
+    ' Nothing found → Nothing
+End Function
