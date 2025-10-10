@@ -9,20 +9,20 @@ Public Sub Install_BTN_AddSheet()
 
     Dim ws As Worksheet, shp As Shape, topLeft As Range
     
-    Set ws = ThisWorkbook.Worksheets("+")
-    Set topLeft = ws.Range("B8")
+    Set ws = ThisWorkbook.Worksheets(LBL_ws_PLUS)
+    Set topLeft = ws.Range(LBL_rng_BTN_ADD_SHEET)
     
     On Error Resume Next
     
-    ws.Shapes("btnAddSheet").Delete
+    ws.Shapes("BTN_AddSheet").Delete
     
     On Error GoTo 0
 
-    Set shp = ws.Shapes.AddShape(msoShapeRoundedRectangle, topLeft.Left, topLeft.Top, ws.Columns("B").width, topLeft.RowHeight)
+    Set shp = ws.Shapes.AddShape(msoShapeRoundedRectangle, topLeft.Left, topLeft.Top, ws.Columns(Left(LBL_rng_BTN_ADD_SHEET, 1)).width, topLeft.RowHeight)
     
     With shp
-        .Name = "btnAddSheet"
-        .TextFrame2.TextRange.Text = "Add Sheet"
+        .Name = "BTN_AddSheet"
+        .TextFrame2.TextRange.Text = "Crear"
         .TextFrame2.TextRange.Font.Bold = msoTrue
         .TextFrame2.TextRange.Font.Size = 10
         .TextFrame2.TextRange.Font.Fill.ForeColor.RGB = RGB(255, 255, 255)
@@ -60,18 +60,18 @@ Public Sub Add_Sheet()
     Dim newName As String
     Dim LogoFinder As String
 
-    Set wsPlus = ThisWorkbook.Worksheets("+")
+    Set wsPlus = ThisWorkbook.Worksheets(LBL_ws_PLUS)
     
-    newName = UCase(Trim$(CStr(wsPlus.Range("C4").Value)))
+    newName = UCase(Trim$(CStr(wsPlus.Range(LBL_rng_SHEET_NAME).Value)))
 
     If Len(newName) = 0 Then
-        MsgBox "Celda C4 vacía.", vbExclamation
+        MsgBox "Celda " & LBL_rng_SHEET_NAME & " vacía.", vbExclamation
         Exit Sub
     End If
 
     If Check_Sheet_Exists(newName) Then
         MsgBox "Una Hoja llamada '" & newName & "' ya existe.", vbCritical
-        wsPlus.Range("C4").ClearContents
+        wsPlus.Range(LBL_rng_SHEET_NAME).ClearContents
         Exit Sub
     End If
 
@@ -96,14 +96,14 @@ Public Sub Add_Sheet()
     
     Inject_Code wsNew
     
-    LogoFinder = "=VLOOKUP(" & Chr(34) & wsPlus.Range("C2") & Chr(34) & ", Data_Bank_Logo, 2, FALSE)"
+    LogoFinder = "=VLOOKUP(" & Chr(34) & wsPlus.Range(LBL_rng_BANK_NAME) & Chr(34) & ", DATA_BANK_LOGO, 2, FALSE)"
     wsNew.Range("B2").Formula = LogoFinder
 
-    wsNew.Tab.Color = wsPlus.Range("C6").Interior.Color
+    wsNew.Tab.Color = wsPlus.Range(LBL_rng_TAB_COLOR).Interior.Color
     
-    wsPlus.Range("C2").ClearContents
-    wsPlus.Range("C4").ClearContents
-    wsPlus.Range("C6").Interior.Color = RGB(255, 255, 255)
+    wsPlus.Range(LBL_rng_BANK_NAME).ClearContents
+    wsPlus.Range(LBL_rng_SHEET_NAME).ClearContents
+    wsPlus.Range(LBL_rng_TAB_COLOR).Interior.Color = RGB(255, 255, 255)
     
     On Error GoTo 0
 
@@ -187,10 +187,10 @@ Public Sub Build_New_Sheet(ByVal ws As Worksheet)
     ws.Range("I6:J6").Interior.Color = RGB(R_IJ_Header_Fill, G_IJ_Header_Fill, B_IJ_Header_Fill)
     ws.Range("I7:J7").Interior.Color = RGB(R_IJ_FirstRow_Fill, G_IJ_FirstRow_Fill, B_IJ_FirstRow_Fill)
 
-    Apply_DataValidation ws.Range("C7"), "Data_Bank_De"
-    Apply_DataValidation ws.Range("D7"), "Data_Bank_Category"
-    Apply_DataValidation ws.Range("I7"), "Data_Bank_Month"
-    Apply_DataValidation ws.Range("J7"), "Data_Bank_Year"
+    Apply_DataValidation ws.Range("C7"), "DATA_BANK_DE"
+    Apply_DataValidation ws.Range("D7"), "DATA_BANK_CATEGORY"
+    Apply_DataValidation ws.Range("I7"), "DATA_BANK_MONTH"
+    Apply_DataValidation ws.Range("J7"), "DATA_BANK_YEAR"
 
     ws.Range("L6").Resize(1, 12).Value = Array("ENE", "FEB", "MAR", "ABR", "MAY", "JUN", "JUL", "AGO", "SEP", "OCT", "NOV", "DIC")
     
@@ -216,7 +216,7 @@ Public Sub Build_New_Sheet(ByVal ws As Worksheet)
         .Font.Bold = True
     End With
 
-    Call Apply_Layout_From_Table(ws, "Data", "Data_Bank_Layout")
+    Call Apply_Layout_From_Table(ws, "Data", "DATA_BANK_LAYOUT")
 
     ws.Rows("11:" & ws.Rows.Count).EntireRow.Hidden = True
     ws.Range("AL1:XFD1").EntireColumn.Hidden = True
@@ -326,8 +326,8 @@ End Function
 
 
 ' - Reads from Data Sheet.
-' - Table: Data_Bank_Layout.
-Public Function Apply_Layout_From_Table(ByVal wsTarget As Worksheet, Optional ByVal layoutSheetName As String = "Data", Optional ByVal tableName As String = "Data_Bank_Layout") As Boolean
+' - Table: DATA_BANK_LAYOUT.
+Public Function Apply_Layout_From_Table(ByVal wsTarget As Worksheet, Optional ByVal layoutSheetName As String = "Data", Optional ByVal tableName As String = "DATA_BANK_LAYOUT") As Boolean
 
     On Error GoTo EH
 
