@@ -1,5 +1,1 @@
-=INDEX(INDIRECT("'"&F4&"'!E:E"),
-       MATCH(1,
-             (INDIRECT("'"&F4&"'!C:C")=H4)*
-             (INDIRECT("'"&F4&"'!D:D")=I4),
-             0))
+=IF(ISNUMBER(INDEX(INDIRECT("'"&$F$6&"'!K:K"),MATCH(1,(INDIRECT("'"&$F$6&"'!C:C")=J6)*(INDIRECT("'"&$F$6&"'!D:D")=K6),0))),INDEX(INDIRECT("'"&$F$6&"'!K:K"),MATCH(1,(INDIRECT("'"&$F$6&"'!C:C")=J6)*(INDIRECT("'"&$F$6&"'!D:D")=K6),0)),"")
