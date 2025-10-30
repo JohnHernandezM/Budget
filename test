@@ -1,5 +1,8 @@
-=INDEX(INDIRECT("'"&$F$6&"'!L:L"),
-       MATCH(1,
-             (INDIRECT("'"&$F$6&"'!C:C")=J6)*
-             (INDIRECT("'"&$F$6&"'!D:D")=K6),
-             0))
+=IFERROR(
+  INDEX(INDIRECT("'"&$F$6&"'!L:L"),
+        MATCH(1,
+              (INDIRECT("'"&$F$6&"'!C:C")=$J$6)*
+              (INDIRECT("'"&$F$6&"'!D:D")=$K$6),
+              0)
+  ),
+"")
