@@ -1,1 +1,10 @@
-=IF(ISNUMBER(--LEFT(F36, 1)), IF(OR(RIGHT(F36, 2)=" L", RIGHT(F36, 2)=" M", RIGHT(F36, 2)=" H"), F36, IF(NOT(ISNUMBER(--LEFT(F37, 1))), IF(OR(RIGHT(F37, 2)=" L", RIGHT(F37, 2)=" M", RIGHT(F37, 2)=" H"), F36&" "&F37, ""), "")), "")
+=IF(AND(ISNUMBER(--LEFT(TRIM(F36),1)), ISNUMBER(MATCH(RIGHT(TRIM(F36),2),{" L"," M"," H"},0))),
+   TRIM(F36),
+   IF(AND(ISNUMBER(--LEFT(TRIM(F37),1)), ISNUMBER(MATCH(RIGHT(TRIM(F37),2),{" L"," M"," H"},0))),
+      TRIM(F36)&" "&TRIM(F37),
+      IF(AND(NOT(ISNUMBER(--LEFT(TRIM(F38),1))), ISNUMBER(MATCH(RIGHT(TRIM(F38),2),{" L"," M"," H"},0))),
+         TRIM(F36)&" "&TRIM(F37)&" "&TRIM(F38),
+         ""
+      )
+   )
+)
