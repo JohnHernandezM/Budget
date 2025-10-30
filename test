@@ -1,8 +1,8 @@
 =IFERROR(
   INDEX(INDIRECT("'"&TRIM($F$4)&"'!E:E"),
         MATCH(1,
-              INDEX( (INDIRECT("'"&TRIM($F$4)&"'!C:C")=$H$4)*
-                     (INDIRECT("'"&TRIM($F$4)&"'!D:D")=$I$4), 0),
+              (INDIRECT("'"&TRIM($F$4)&"'!C:C")=$H$4)*
+              (INDIRECT("'"&TRIM($F$4)&"'!D:D")=$I$4),
               0)
   ),
 "")
