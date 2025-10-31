@@ -1,17 +1,16 @@
 =LET(
-  g, G:G,
-  r, ROW(),
-  txt, INDEX(g, r),
+  g, G$7:G$100,
+  i, ROWS(G$7:G7),
+  txt, INDEX(g, i),
   isEnd, LAMBDA(t, ISNUMBER(MATCH(RIGHT(t,2), {" L"," M"," H"}, 0))),
   start, AND(txt<>"", ISNUMBER(--LEFT(txt,4)), NOT(isEnd(txt))),
-  last, LOOKUP(2, 1/(g<>""), ROW(g)),
+  last, MATCH(2,1/(g<>""),0),
   IF(start,
      LET(
-       rng, INDEX(g, r):INDEX(g, last),
-       flags, MAP(rng, LAMBDA(x, isEnd(x))),
-       pos, XMATCH(TRUE, flags, 0),
-       endrow, IFERROR(r+pos-1, last),
-       TEXTJOIN(" ", TRUE, INDEX(g, r):INDEX(g, endrow))
+       rng, INDEX(g, i):INDEX(g, last),
+       pos, XMATCH(TRUE, MAP(rng, LAMBDA(x, isEnd(x))), 0),
+       e, IFERROR(i+pos-1, last),
+       TEXTJOIN(" ", TRUE, INDEX(g, i):INDEX(g, e))
      ),
      ""
   )
