@@ -1,43 +1,12 @@
-2086 Soft Drinks and Carbonated Water – In Glass
-Bottles 2 5 6 0.90 1.00 2.50 1.50 M
-2086 Soft Drinks and Carbonated Water – In Paper
-Containers 2 5 6 0.90 1.00 2.50 1.50 M
-2086 Non-Carbonated Drinks and Water – In Bottles
-or Cans 2 5 6 0.90 1.00 2.50 1.50 M
-2087 Flavorings, Food Colors, Extracts and Syrups 2 5 6 0.90 1.00 2.00 1.20 M
-Miscellaneous Food Preparations
-2095 Roasted Coffee 2 5 6 0.90 1.00 1.00 0.70 H
-2096 Potato or Corn Chips and Similar Snacks 2 5 6 0.90 1.00 1.00 0.70 H
-2097 Manufactured Ice 2 5 6 0.90 1.00 1.00 0.70 H
-2098 Pasta and Noodles (Spaghetti, Macaroni, etc.) 2 5 6 0.90 1.00 1.00 0.70 H
-LUGGAGE, HANDBAGS and OTHER PERSONAL LEATHER GOODS
-3161 Luggage – Leather 3 4 2 1.10 1.10 0.80 0.56 M
-3161 Luggage – Canvas and Nylon 3 4 2 1.10 1.10 0.80 0.56 M
-3171 Women’s Handbags and Purses 3 4 2 1.10 1.10 0.80 0.56 M
-3172 Personal Leather Goods (Billfolds, Toilet Cases,
-etc.) 3 4 2 1.10 1.10 0.80 0.56 M
-PAPER AND ALLIED PRODUCTS
-2656 Sanitary Food Containers, except Folding 3 4 2 1.15 1.25 0.90 0.63 H
-2657 Folding Paperboard Boxes, including Sanitary
-Food 3 4 2 1.15 1.25 0.90 0.63 H
-2677 Envelopes 3 4 2 1.15 1.25 0.90 0.63 H
-2678 Stationery, Tablets and Related Products 3 4 2 1.15 1.25 0.90 0.63 H
-PUBLISHING AND COMMERCIAL PRINTING
-2732 Book Printing or Binding 2 6 2 1.00 1.05 0.52 N/A H
-2732 Music Book Printing or Printing and Binding 2 6 2 1.00 1.05 0.52 N/A H
-2732 Pamphlet Printing or Printing and Binding 2 6 2 1.00 1.05 0.52 N/A H
-2732 Textbook Printing or Printing and Binding 2 6 2 1.00 1.05 0.52 N/A H
-2741
-Miscellaneous Publishing (Calendars Catalogs,
-Maps, etc.) 2 6 2 1.00 1.05 0.52 N/A H
-2752 TEST
-Commercial Printing - Job Shop Basis -
-Lithographic 2 6 2 1.00 1.05 0.52 N/A H
-2752 Lithographic Printing 2 6 2 1.00 1.05 0.52 N/A H
-2752 Printing - Lithographic 2 6 2 1.00 1.05 0.52 N/A H
-2754 Commercial Printing - Job Shop Basis - Gravure 2 6 2 1.00 1.05 0.52 N/A H
-2754 Gravure Printing 2 6 2 1.00 1.05 0.52 N/A H
-2754 Printing - Gravure 2 6 2 1.00 1.05 0.52 N/A H
-2759 Printing, NOC 2 6 2 1.00 1.05 0.52 N/A H
-2759 Announcements, Engraved (Printed) 2 6 2 1.00 1.05 0.52 N/A H
-2759 Bags, Plastic (Printed) 2 6 2 1.00 1.05 0.52 N/A H
+=LET(
+  i, ROW()-ROW($G$7)+1,
+  curr, INDEX($G$7:$G$49, i),
+  endsTag, ISNUMBER(MATCH(RIGHT(curr,2),{" L"," M"," H"},0)),
+  startsNum, ISNUMBER(--LEFT(curr,4)),
+  rng, INDEX($G$7:$G$49, SEQUENCE(ROWS($G$7:$G$49)-i+1,1,i)),
+  endpos, IFERROR(XMATCH(TRUE, ISNUMBER(MATCH(RIGHT(rng,2),{" L"," M"," H"},0)),0,1), ROWS(rng)),
+  IF(AND(startsNum, NOT(endsTag)),
+     TEXTJOIN(" ", TRUE, TAKE(rng, endpos)),
+     curr
+  )
+)
