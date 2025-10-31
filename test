@@ -1,8 +1,14 @@
-=IFERROR(
-  INDEX(INDIRECT("'"&$F$6&"'!L:L"),
-        MATCH(1,
-              (INDIRECT("'"&$F$6&"'!C:C")=$J$6)*
-              (INDIRECT("'"&$F$6&"'!D:D")=$K$6),
-              0)
-  ),
-"")
+2677 Envelopes 3 4 2 1.15 1.25 0.90 0.63 H
+2678 Stationery, Tablets and Related Products 3 4 2 1.15 1.25 0.90 0.63 H
+PUBLISHING AND COMMERCIAL PRINTING
+2732 Book Printing or Binding 2 6 2 1.00 1.05 0.52 N/A H
+2732 Music Book Printing or Printing and Binding 2 6 2 1.00 1.05 0.52 N/A H
+2732 Pamphlet Printing or Printing and Binding 2 6 2 1.00 1.05 0.52 N/A H
+2732 Textbook Printing or Printing and Binding 2 6 2 1.00 1.05 0.52 N/A H
+2741
+Miscellaneous Publishing (Calendars Catalogs,
+Maps, etc.) 2 6 2 1.00 1.05 0.52 N/A H
+2752 TEST
+Commercial Printing - Job Shop Basis -
+Lithographic 2 6 2 1.00 1.05 0.52 N/A H
+2752 Lithographic Printing 2 6 2 1.00 1.05 0.52 N/A H
