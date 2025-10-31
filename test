@@ -1,14 +1,18 @@
-2677 Envelopes 3 4 2 1.15 1.25 0.90 0.63 H
-2678 Stationery, Tablets and Related Products 3 4 2 1.15 1.25 0.90 0.63 H
-PUBLISHING AND COMMERCIAL PRINTING
-2732 Book Printing or Binding 2 6 2 1.00 1.05 0.52 N/A H
-2732 Music Book Printing or Printing and Binding 2 6 2 1.00 1.05 0.52 N/A H
-2732 Pamphlet Printing or Printing and Binding 2 6 2 1.00 1.05 0.52 N/A H
-2732 Textbook Printing or Printing and Binding 2 6 2 1.00 1.05 0.52 N/A H
-2741
-Miscellaneous Publishing (Calendars Catalogs,
-Maps, etc.) 2 6 2 1.00 1.05 0.52 N/A H
-2752 TEST
-Commercial Printing - Job Shop Basis -
-Lithographic 2 6 2 1.00 1.05 0.52 N/A H
-2752 Lithographic Printing 2 6 2 1.00 1.05 0.52 N/A H
+=LET(
+  g, G:G,
+  r, ROW(),
+  txt, INDEX(g, r),
+  isEnd, LAMBDA(t, ISNUMBER(MATCH(RIGHT(t,2), {" L"," M"," H"}, 0))),
+  start, AND(txt<>"", ISNUMBER(--LEFT(txt,4)), NOT(isEnd(txt))),
+  last, LOOKUP(2, 1/(g<>""), ROW(g)),
+  IF(start,
+     LET(
+       rng, INDEX(g, r):INDEX(g, last),
+       flags, MAP(rng, LAMBDA(x, isEnd(x))),
+       pos, XMATCH(TRUE, flags, 0),
+       endrow, IFERROR(r+pos-1, last),
+       TEXTJOIN(" ", TRUE, INDEX(g, r):INDEX(g, endrow))
+     ),
+     ""
+  )
+)
