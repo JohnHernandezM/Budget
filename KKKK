@@ -1,3 +1,5 @@
+VOID TRN NBR
+
 =LET(
   parts, TRIM(TEXTSPLIT(M13, "," , , TRUE)),
   x, FILTER(parts, parts<>""),                         /* keep non-empty items */
@@ -5,3 +7,16 @@
   seq, SEQUENCE(1, 2*n-1),
   IF(ISODD(seq), INDEX(x, (seq+1)/2), "")
 )
+
+CREATE DAYS
+
+=LET(
+    allM, FILTER(M:M, M:M<>""),                                  /* take nonblank M cells */
+    countItems, BYROW(allM, LAMBDA(x, COUNTA(TEXTSPLIT(x, ",")))),/* count commas per cell */
+    maxN, MAX(countItems),                                        /* find max number of items */
+    maxCols, maxN*2+1,                                            /* double +1 */
+    seq, SEQUENCE(1, maxCols),
+    IF(ISODD(seq), (seq+1)/2, "")                                 /* leave blanks between */
+)
+
+
