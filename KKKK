@@ -13,9 +13,14 @@ CREATE DAYS
 =LET(
   last, LOOKUP(2,1/(M:M<>""),ROW(M:M)),
   rng, M2:INDEX(M:M,last),
-  counts, BYROW(rng, LAMBDA(x, IF(x="", 0, LEN(x)-LEN(SUBSTITUTE(x,",",""))+1))),
+  /* count items per cell in M, ignoring empty tokens/spaces */
+  counts, BYROW(rng, LAMBDA(x,
+    LET(arr, TEXTSPLIT(TRIM(x), ",",,TRUE), IFERROR(COLUMNS(FILTER(arr, arr<>"")),0))
+  )),
   maxN, MAX(counts),
-  seq, SEQUENCE(1, maxN*2+1),
+  nums, 2*maxN+1,                 /* numbers to display (e.g., 7 when maxN=3) */
+  total, 2*nums-1,                /* spill width (e.g., 13 to land last number in AC) */
+  seq, SEQUENCE(1,total),
   IF(ISODD(seq), (seq+1)/2, "")
 )
 
