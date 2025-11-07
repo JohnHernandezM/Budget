@@ -299,3 +299,33 @@ function main(workbook: ExcelScript.Workbook) {
 
   console.log(`Done. Inserted ${totalInserted} rows in total based on Column J counts.`);
 }
+
+
+=LET(
+  last, LOOKUP(2,1/(L:L<>""),ROW(L:L)),
+  rngL, L$4:INDEX(L:L,last),
+  rngM, M$4:INDEX(M:M,last),
+  rows, ROWS(rngM),
+
+  blocked, SUM(
+    BYROW(SEQUENCE(rows), LAMBDA(i,
+      LET(
+        partsI, TEXTSPLIT(TRIM(INDEX(rngL,i)), ",",,TRUE),
+        tokI,   FILTER(TRIM(partsI), TRIM(partsI)<>""),
+        n,      COLUMNS(tokI),
+        IF(n<=1, 0, COUNTA( TAKE( DROP(rngM, i), n-1 ) ))
+      )
+    ))
+  )>0,
+
+  IF(blocked,
+     "Run Script",
+     LET(
+       parts, TEXTSPLIT(TRIM(INDEX(L:L,ROW())), ",",,TRUE),
+       tok,   FILTER(TRIM(parts), TRIM(parts)<>""),
+       desc,  SORTBY(tok, VALUE(tok), -1),
+       TRANSPOSE(desc) & ":"
+     )
+  )
+)
+
