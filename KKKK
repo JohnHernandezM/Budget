@@ -317,22 +317,20 @@ function main(workbook: ExcelScript.Workbook) {
 
 
 =LET(
-  last, AGGREGATE(14,6,ROW(L4:L)/(L4:L<>""),1),
+  last, LOOKUP(2,1/(L4:L<>""),ROW(L4:L)),
   rngL, L4:INDEX(L:L,last),
-
-  /* Global flag: TRUE if any row in L4:Llast has >1 token */
-  needsSpill, SUMPRODUCT( (LEN(rngL)>0) * ((LEN(rngL)-LEN(SUBSTITUTE(rngL,",",""))+1) > 1) ) > 0,
-
+  needsSpill, SUMPRODUCT( (LEN(TRIM(rngL))>0) * ((LEN(TRIM(rngL)) - LEN(SUBSTITUTE(TRIM(rngL),",","")) + 1) > 1) ) > 0,
   IF(needsSpill,
      "Run Script",
      IF(LEN(TRIM(L4))=0,"",
        LET(
          parts, TEXTSPLIT(TRIM(L4), ",", , TRUE),
-         tok,   FILTER(TRIM(parts), TRIM(parts)<>""),     
-         desc,  SORTBY(tok, VALUE(tok), -1),                   
+         tok,   FILTER(TRIM(parts), TRIM(parts)<>""),
+         desc,  SORTBY(tok, VALUE(tok), -1),
          TRANSPOSE(desc) & ":"
        )
      )
   )
 )
+
 
