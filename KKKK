@@ -44,5 +44,13 @@ CREATE DAYS
   IF(ISODD(seq), (seq+1)/2, "")
 )
 
+COLUMN N:
+
+=LET(
+  parts, TEXTSPLIT(TRIM(M11), ",",,TRUE),
+  tok,   FILTER(TRIM(parts), TRIM(parts)<>""),   /* remove spaces/empties */
+  TRANSPOSE(tok) & ":"
+)
+
 
 
