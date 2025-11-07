@@ -59,6 +59,14 @@ COLUMN N:
   TRANSPOSE(tok) & ":"
 )
 
+DESCENDING:
+=LET(
+  parts, TEXTSPLIT(TRIM(M11), ",",,TRUE),
+  tok,   FILTER(TRIM(parts), TRIM(parts)<>""),     
+  desc,  SORTBY(tok, VALUE(tok), -1),                   
+  TRANSPOSE(desc) & ":"
+)
+
 
 -------------------------------------------------------------------------------------------------
 
