@@ -120,12 +120,11 @@ BORI WITH TOKENS:
 BORI WITH TOKENS AND VOID TRANSACTION:
 
 =LET(
-  tok, TEXTBEFORE(N11#,":"),                         /* tokens (vertical) */
+  tok, TEXTBEFORE(N11#,":"),                        
   n, ROWS(tok),
-  pRange, P11:INDEX(P:P, ROW(P11)+n-1),              /* Yes/No aligned with N */
+  pRange, P11:INDEX(P:P, ROW(P11)+n-1),              
   pNorm, UPPER(TRIM(pRange)),
 
-  /* BO/RI message from YES tokens (ascending) */
   yesList, IFERROR(FILTER(tok, pNorm="YES"), ""),
   msg, IF(COUNTA(yesList)=0,
           "Process BO/RI.",
@@ -133,14 +132,13 @@ BORI WITH TOKENS AND VOID TRANSACTION:
              "Include changes from Transaction "&SORT(yesList,1,1)&" in the BO/RI.")
   ),
 
-  /* Right side: reverse tokens, drop YES, compact (and avoid empty-string artifacts) */
   revTok,   INDEX(tok, SEQUENCE(n,,n,-1)),
   revPNorm, INDEX(pNorm, SEQUENCE(n,,n,-1)),
   rightMask, revPNorm<>"YES",
   rowsRight, SUM(--rightMask),
   rightTok, IF(rowsRight=0, "", INDEX(revTok, FILTER(SEQUENCE(n), rightMask))),
 
-  total, 2*(2*n+1),                                  /* wide spill incl. trailing blank step */
+  total, 2*(2*n+1),                                  
   seq, SEQUENCE(1,total),
 
   IF(ISODD(seq),
