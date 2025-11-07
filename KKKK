@@ -109,7 +109,6 @@ BORI WITH TOKEN 2ND TRY
   pRange, P11:INDEX(P:P, ROW(P11)+n-1),              
   pNorm, UPPER(TRIM(pRange)),
 
-  /* Build BO/RI message lines from YES tokens, sorted ascending */
   yesList, IFERROR(FILTER(tok, pNorm="YES"), ""),
   msg, IF(COUNTA(yesList)=0,
           "Process BO/RI",
