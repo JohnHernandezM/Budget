@@ -255,3 +255,56 @@ function main(workbook: ExcelScript.Workbook) {
   console.log(`Done. Inserted ${totalInserted} rows in total below Column M tokens.`);
 }
 
+SCRIPT UDATED***
+function main(workbook: ExcelScript.Workbook) 
+{
+    const sheet = workbook.getActiveWorksheet();
+
+    //===== Settings ====
+    const START_ROW = 4;        // Start at L4
+    const COL_LETTER = "L";     // Work in column L
+    const COL_INDEX = 11;       // Column L
+
+    // 1. Find the last non-blank row in column L
+    const usedM = sheet.getRange(`${COL_LETTER}:${COL_LETTER}`).getUsedRange();
+    if (!usedM) {
+        console.log("Column L has no used cells.");
+        return;
+    }
+    const usedStartRow = usedM.getRowIndex();           // Row of first used cell in L
+    const usedRowCount = usedM.getRowCount();
+    const lastRowInM = usedStartRow + usedRowCount - 1; // Row of last used cell in L
+
+    // Normalize start row to at least the first used row in L
+    const startRowIdx = Math.max(START_ROW - 1, usedStartRow);
+
+    // Process from bottom to top to avoid index shifting issues
+    let totalInserted = 0;
+    for (let r = lastRowInM; r >= startRowIdx; r--) {
+        const cell = sheet.getCell(r, COL_INDEX);
+        const raw = (cell.getValue() ?? "").toString();
+
+        // 2. Count tokens: split by comma, trim, drop empties
+        const tokens = raw
+            .split(",")
+            .map(s => s.trim())
+            .filter(s => s.length > 0);
+
+        const tokenCount = tokens.length;
+
+        if (tokenCount > 1) {
+            const rowsToInsert = tokenCount - 1;
+
+            // Insert whole rows BELOW the current row (r). Insert starting at (r+1)
+
+            // We insert 'rowsToInsert' entire rows in one go.
+            const insertAtRow = r + 1; 
+            const rowRange = sheet.getRangeByIndexes(insertAtRow, 0, rowsToInsert, 1).getEntireRow();
+            rowRange.insert(ExcelScript.InsertShiftDirection.down);
+
+            totalInserted += rowsToInsert;
+            // No need to adjust 'r' since we are moving upward; new rows are below r.
+        }
+    }
+    console.log(`Done. Inserted ${totalInserted} rows in total below Column L tokens.`);
+}
