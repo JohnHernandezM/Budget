@@ -8,6 +8,26 @@ VOID TRN NBR
   IF(ISODD(seq), INDEX(x, (seq+1)/2), "")
 )
 
+VOID TRN NBR INCLUDING BORI
+
+=LET(
+  parts, TEXTSPLIT(TRIM(M11), ",",,TRUE),
+  x, FILTER(TRIM(parts), TRIM(parts)<>""),     
+  n, COLUMNS(x),
+  total, 2*(2*n+1),                              
+  seq, SEQUENCE(1, total),
+  IF(ISODD(seq),
+     LET(k, (seq+1)/2,                           
+        IF(k = n+1, "Process BO/RI",
+           IF(k <= n, INDEX(x, k),
+                     INDEX(x, 2*n+2 - k))
+        )
+     ),
+     ""
+  )
+)
+
+
 CREATE DAYS
 
 =LET(
