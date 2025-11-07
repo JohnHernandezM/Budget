@@ -63,22 +63,16 @@ COLUMN N:
 
 DESCENDING:
 
-=LET(
-  parts, TEXTSPLIT(TRIM(M11), ",",,TRUE),
-  tok,   FILTER(TRIM(parts), TRIM(parts)<>""),     
-  desc,  SORTBY(tok, VALUE(tok), -1),                   
-  TRANSPOSE(desc) & ":"
-)
-
 =IFERROR(
   LET(
-    parts, TEXTSPLIT(TRIM(M11), ",", , TRUE),
-    tok,   FILTER(TRIM(parts), TRIM(parts)<>""),     
-    desc,  SORTBY(tok, VALUE(tok), -1),                   
+    parts, TEXTSPLIT(TRIM(L4), ",", , TRUE),
+    tok,   FILTER(TRIM(parts), TRIM(parts)<>""),
+    desc,  SORTBY(tok, VALUE(tok), -1),
     TRANSPOSE(desc) & ":"
   ),
   "Run Script"
 )
+
 
 -------------------------------------------------------------------------------------------------
 
