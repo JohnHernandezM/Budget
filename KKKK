@@ -43,7 +43,7 @@ CREATE DAYS
   )),
   maxN, MAX(counts),
   nums, 2*maxN+1,                 
-  total, 2*nums-1,                
+  total, 2*nums,                
   seq, SEQUENCE(1,total),
   IF(ISODD(seq), (seq+1)/2, "")
 )
