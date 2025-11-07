@@ -51,5 +51,16 @@ COLUMN N:
   TRANSPOSE(tok) & ":"
 )
 
+COLUMN P:
+
+=IF(N11#<>"", IF(O11:INDEX(O:O, ROW(O11)+ROWS(N11#)-1),"☑","☐"), "")
 
 
+=LET(
+  h, ROWS(N11#),
+  sel, O11:INDEX(O:O, ROW(O11)+h-1),
+  IF(N11#<>"",
+     IF(sel="","", IF(sel="Yes","☑","☐")),
+     ""
+  )
+)
