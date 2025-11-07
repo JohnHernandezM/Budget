@@ -1,7 +1,7 @@
 =LET(
-x, TEXTSPLIT(A1, ","),
-cols, SEQUENCE(1, COLUMNS(x)*2 - 1, 1, 2),
-MAKEARRAY(1, MAX(cols),
-LAMBDA(r,c, IF(ISNUMBER(MATCH(c, cols, 0)), INDEX(x, (c+1)/2), ""))
-)
+  parts, TRIM(TEXTSPLIT(M13, "," , , TRUE)),
+  x, FILTER(parts, parts<>""),                         /* keep non-empty items */
+  n, COLUMNS(x),
+  seq, SEQUENCE(1, 2*n-1),
+  IF(ISODD(seq), INDEX(x, (seq+1)/2), "")
 )
