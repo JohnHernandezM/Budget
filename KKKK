@@ -334,3 +334,16 @@ function main(workbook: ExcelScript.Workbook) {
 )
 
 
+=SUMPRODUCT(--($L$4:$L$1000<>""), --(LEN($L$4:$L$1000)-LEN(SUBSTITUTE($L$4:$L$1000,",",""))>=1))>0
+
+=IF($M$3,
+   "Run Script",
+   LET(
+     parts, TEXTSPLIT(TRIM(L4), ",", , TRUE),
+     tok,   FILTER(TRIM(parts), TRIM(parts)<>""),
+     desc,  SORTBY(tok, VALUE(tok), -1),
+     TRANSPOSE(desc) & ":"
+   )
+)
+
+
