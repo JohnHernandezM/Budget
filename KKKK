@@ -63,15 +63,17 @@ COLUMN N:
 
 DESCENDING:
 
-=IFERROR(
+=IF(
+  COUNTA(OFFSET(L4,1,1,ROWS(TEXTSPLIT(L4,",")),1))>0,
+  "Run Script",
   LET(
     parts, TEXTSPLIT(TRIM(L4), ",", , TRUE),
     tok,   FILTER(TRIM(parts), TRIM(parts)<>""),
     desc,  SORTBY(tok, VALUE(tok), -1),
     TRANSPOSE(desc) & ":"
-  ),
-  "Run Script"
+  )
 )
+
 
 
 -------------------------------------------------------------------------------------------------
