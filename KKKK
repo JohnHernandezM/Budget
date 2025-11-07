@@ -2,7 +2,7 @@ VOID TRN NBR
 
 =LET(
   parts, TRIM(TEXTSPLIT(M13, "," , , TRUE)),
-  x, FILTER(parts, parts<>""),                         /* keep non-empty items */
+  x, FILTER(parts, parts<>""),                         
   n, COLUMNS(x),
   seq, SEQUENCE(1, 2*n-1),
   IF(ISODD(seq), INDEX(x, (seq+1)/2), "")
@@ -33,13 +33,12 @@ CREATE DAYS
 =LET(
   last, LOOKUP(2,1/(M:M<>""),ROW(M:M)),
   rng, M2:INDEX(M:M,last),
-  /* count items per cell in M, ignoring empty tokens/spaces */
   counts, BYROW(rng, LAMBDA(x,
     LET(arr, TEXTSPLIT(TRIM(x), ",",,TRUE), IFERROR(COLUMNS(FILTER(arr, arr<>"")),0))
   )),
   maxN, MAX(counts),
-  nums, 2*maxN+1,                 /* numbers to display (e.g., 7 when maxN=3) */
-  total, 2*nums-1,                /* spill width (e.g., 13 to land last number in AC) */
+  nums, 2*maxN+1,                 
+  total, 2*nums-1,                
   seq, SEQUENCE(1,total),
   IF(ISODD(seq), (seq+1)/2, "")
 )
@@ -48,7 +47,7 @@ COLUMN N:
 
 =LET(
   parts, TEXTSPLIT(TRIM(M11), ",",,TRUE),
-  tok,   FILTER(TRIM(parts), TRIM(parts)<>""),   /* remove spaces/empties */
+  tok,   FILTER(TRIM(parts), TRIM(parts)<>""),  
   TRANSPOSE(tok) & ":"
 )
 
