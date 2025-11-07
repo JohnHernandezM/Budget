@@ -315,29 +315,27 @@ function main(workbook: ExcelScript.Workbook) {
 
 
 =LET(
-  last, LOOKUP(2,1/(L:L<>""),ROW(L:L)),
-  rngL, L$4:INDEX(L:L,last),
-  rngM, M$4:INDEX(M:M,last),
-  rows, ROWS(rngM),
+  last, LOOKUP(2,1/(L4:L<>""),ROW(L4:L)),
+  rngL, L4:INDEX(L:L,last),
 
-  blocked, SUM(
-    BYROW(SEQUENCE(rows), LAMBDA(i,
-      LET(
-        partsI, TEXTSPLIT(TRIM(INDEX(rngL,i)), ",",,TRUE),
-        tokI,   FILTER(TRIM(partsI), TRIM(partsI)<>""),
-        n,      COLUMNS(tokI),
-        IF(n<=1, 0, COUNTA( TAKE( DROP(rngM, i), n-1 ) ))
-      )
-    ))
-  )>0,
+  blocked,
+    SUM(
+      BYROW(rngL, LAMBDA(x,
+        LET(
+          p, TEXTSPLIT(TRIM(x), ",",,TRUE),
+          t, FILTER(TRIM(p), TRIM(p)<>""),      /* tokens */
+          --(COLUMNS(t)>1)                       /* 1 if needs to spill */
+        )
+      ))
+    )>0,
 
   IF(blocked,
      "Run Script",
      LET(
-       parts, TEXTSPLIT(TRIM(INDEX(L:L,ROW())), ",",,TRUE),
+       parts, TEXTSPLIT(TRIM(L4), ",",,TRUE),
        tok,   FILTER(TRIM(parts), TRIM(parts)<>""),
        desc,  SORTBY(tok, VALUE(tok), -1),
-       TRANSPOSE(desc) & ":"
+       INDEX(desc,1) & ":"                      /* single-cell, never spills */
      )
   )
 )
