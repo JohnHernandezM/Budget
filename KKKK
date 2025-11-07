@@ -11,12 +11,15 @@ VOID TRN NBR
 CREATE DAYS
 
 =LET(
-    allM, FILTER(M:M, M:M<>""),                                  /* take nonblank M cells */
-    countItems, BYROW(allM, LAMBDA(x, COUNTA(TEXTSPLIT(x, ",")))),/* count commas per cell */
-    maxN, MAX(countItems),                                        /* find max number of items */
-    maxCols, maxN*2+1,                                            /* double +1 */
-    seq, SEQUENCE(1, maxCols),
-    IF(ISODD(seq), (seq+1)/2, "")                                 /* leave blanks between */
+  last, LOOKUP(2,1/(M:M<>""),ROW(M:M)),
+  rng, M2:INDEX(M:M,last),
+  counts, BYROW(rng, LAMBDA(x, IF(x="",
+      0,
+      LEN(x)-LEN(SUBSTITUTE(x,",",""))+1
+  ))),
+  maxN, MAX(counts),
+  SEQUENCE(1, maxN*2+1),
+  IF(ISODD(SEQUENCE(1, maxN*2+1)), (SEQUENCE(1, maxN*2+1)+1)/2, "")
 )
 
 
