@@ -1,157 +1,142 @@
-VOID TRN NBR
+===============================================================================================================================================
+/////////////////////////////////////////////////////////////////////////////////////////////////// AUTOMATED SCRIPT: ADD ROWS - DEPENDING ON J                         
+===============================================================================================================================================
+
+function main(workbook: ExcelScript.Workbook) 
+{
+    const sheet = workbook.getActiveWorksheet();
+
+    // ===== Settings =====
+    const START_ROW = 4;        // Start at J4
+    const COL_LETTER = "J";     // Work in column J
+    const COL_INDEX = 9;        // Column J
+
+    // Find the last non-blank row in column J
+    const usedJ = sheet.getRange(`${COL_LETTER}:${COL_LETTER}`).getUsedRange();
+    if (!usedJ) {
+        console.log("Column J has no used cells.");
+        return;
+    }
+    const usedStartRow = usedJ.getRowIndex();                 // First in J
+    const usedRowCount = usedJ.getRowCount();
+    const lastRowInJ = usedStartRow + usedRowCount - 1;       // Last in J
+
+    // Normalize start row to at least the first used row in J
+    const startRowIdx = Math.max(START_ROW - 1, usedStartRow);
+
+    let totalInserted = 0;
+
+    // Process from bottom to top
+    for (let r = lastRowInJ; r >= startRowIdx; r--) {
+        const val = sheet.getCell(r, COL_INDEX).getValue();
+        
+        // Coerce to a non-negative integer; treat blanks/non-numbers as 0
+        const n = Number(val);
+        const count = (isFinite(n) && !isNaN(n)) ? Math.floor(n) : 0;
+
+        // Rows to insert = (J - 1), but never less than 0
+        const rowsToInsert = Math.max(0, count - 1);
+
+        if (rowsToInsert > 0) {
+            const insertAtRow = r + 1; // Insert BELOW current row
+            const rowRange = sheet
+                .getRangeByIndexes(insertAtRow, 0, rowsToInsert, 1)
+                .getEntireRow();
+
+            rowRange.insert(ExcelScript.InsertShiftDirection.down);
+            totalInserted += rowsToInsert;
+        }
+    }
+
+    console.log(`Done. Inserted ${totalInserted} rows in total based on Column J counts.`);
+}
+
+===============================================================================================================================================
+-
+-
+-
+-
+===============================================================================================================================================
+[M] - ALL ******** NBR
+===============================================================================================================================================
+
+=IF(L11<>"", LET(
+  parts, TEXTSPLIT(TRIM(L11), ",", , TRUE),
+  tok,   FILTER(TRIM(parts), TRIM(parts)<>""),
+  desc,  SORTBY(tok, VALUE(tok), -1),
+  TRANSPOSE(desc) & ":"
+), "")
+
+===============================================================================================================================================
+-
+-
+-
+-
+===============================================================================================================================================
+[Q2] - FIXED ******** DAYS
+===============================================================================================================================================
 
 =LET(
-  parts, TRIM(TEXTSPLIT(M13, "," , , TRUE)),
-  x, FILTER(parts, parts<>""),                         
-  n, COLUMNS(x),
-  seq, SEQUENCE(1, 2*n-1),
-  IF(ISODD(seq), INDEX(x, (seq+1)/2), "")
-)
-
-
--------------------------------------------------------------------------------------------------
-
-VOID TRN NBR INCLUDING BORI
-
-=LET(
-  parts, TEXTSPLIT(TRIM(M11), ",",,TRUE),
-  x, FILTER(TRIM(parts), TRIM(parts)<>""),     
-  n, COLUMNS(x),
-  total, 2*(2*n+1),                              
-  seq, SEQUENCE(1, total),
-  IF(ISODD(seq),
-     LET(k, (seq+1)/2,                           
-        IF(k = n+1, "Process BO/RI",
-           IF(k <= n, INDEX(x, k),
-                     INDEX(x, 2*n+2 - k))
-        )
-     ),
-     ""
-  )
-)
-
-
--------------------------------------------------------------------------------------------------
-
-CREATE DAYS
-
-=LET(
-  last, LOOKUP(2,1/(M:M<>""),ROW(M:M)),
-  rng, M2:INDEX(M:M,last),
-  counts, BYROW(rng, LAMBDA(x,
+  last, LOOKUP(2,1/(L:L<>""),ROW(L:L)),
+  rng, L2:INDEX(L:L,last),
+  counts, BYROW(rng, LAMBDA(x, n
     LET(arr, TEXTSPLIT(TRIM(x), ",",,TRUE), IFERROR(COLUMNS(FILTER(arr, arr<>"")),0))
   )),
   maxN, MAX(counts),
-  nums, 2*maxN+1,                 
-  total, 2*nums,                
+  nums, 2*maxN+1,
+  total, 2*nums,
   seq, SEQUENCE(1,total),
-  IF(ISODD(seq), (seq+1)/2, "")
+  IF(ISODD(seq), "Day "&(seq+1)/2, "")
 )
 
-
--------------------------------------------------------------------------------------------------
-
-COLUMN N:
+===============================================================================================================================================
+-
+-
+-
+-
+===============================================================================================================================================
+[Q3] - FIXED ***** ACTION/DONE
+===============================================================================================================================================
 
 =LET(
-  parts, TEXTSPLIT(TRIM(M11), ",",,TRUE),
-  tok,   FILTER(TRIM(parts), TRIM(parts)<>""),  
-  TRANSPOSE(tok) & ":"
+  last, LOOKUP(2,1/(L:L<>""),ROW(L:L)),
+  rng, L2:INDEX(L:L,last),
+  counts, BYROW(rng, LAMBDA(x,
+    LET(arr, TEXTSPLIT(TRIM(x), ",",,TRUE), IFERROR(COLUMNS(FILTER(arr, arr<>"" )), 0))
+  )),
+  maxN, MAX(counts),
+  nums, 2*maxN+1,
+  total, 2*nums,
+  seq, SEQUENCE(1, total),
+  IF(ISODD(seq), "[ Action ]", "Done")
 )
 
--------------------------------------------------------------------------------------------------
-
-DESCENDING:
-
-=IF(
-  COUNTA(OFFSET(L4,1,1,ROWS(TEXTSPLIT(L4,",")),1))>0,
-  "Run Script",
-  LET(
-    parts, TEXTSPLIT(TRIM(L4), ",", , TRUE),
-    tok,   FILTER(TRIM(parts), TRIM(parts)<>""),
-    desc,  SORTBY(tok, VALUE(tok), -1),
-    TRANSPOSE(desc) & ":"
-  )
-)
-
-
-003, 002	        #SPILL!
-002	              002:
-002	              002:
-002	              002:
-005, 004	        #SPILL!
-002	              002:
-002	              002:
-005, 004, 003	    #SPILL!
-002	              002:
-002	              002:
-002	              002:
-
-
-
--------------------------------------------------------------------------------------------------
-
-COLUMN P:
-
-=IF(N11#<>"", IF(O11:INDEX(O:O, ROW(O11)+ROWS(N11#)-1),"☑","☐"), "")
-
+===============================================================================================================================================
+[P] - ALL ******** BOOL ICON
+===============================================================================================================================================
 
 =LET(
-  h, ROWS(N11#),
+  h, ROWS(M11#),
   sel, O11:INDEX(O:O, ROW(O11)+h-1),
-  IF(N11#<>"",
+  IF(M11#<>"",
      IF(sel="","", IF(sel="Yes","☑","☐")),
      ""
   )
 )
 
-
--------------------------------------------------------------------------------------------------
-
-BORI WITH TOKENS:
-
-=LET(
-  tok, TEXTBEFORE(N11#,":"),                      
-  n, ROWS(tok),
-  pRange, P11:INDEX(P:P, ROW(P11)+n-1),              
-  pNorm, UPPER(TRIM(pRange)),
-
-  yesList, IFERROR(FILTER(tok, pNorm="YES"), ""),
-  msg, IF(COUNTA(yesList)=0,
-          "Process BO/RI",
-          "Process BO/RI"&CHAR(10)&TEXTJOIN(CHAR(10), TRUE,
-             "Include changes from Transaction "&SORT(yesList,1,1)&" in the BO/RI.")
-  ),
-
-  revTok, INDEX(tok, SEQUENCE(n,,n,-1)),
-  revPNorm, INDEX(pNorm, SEQUENCE(n,,n,-1)),
-  rightArr, IFERROR(FILTER(revTok, revPNorm<>"YES"), ""),
-  rowsRight, IFERROR(ROWS(rightArr),0),
-
-  total, 2*(2*n+1),                        
-  seq, SEQUENCE(1,total),
-
-  IF(ISODD(seq),
-    LET(k,(seq+1)/2,
-      IF(k=n+1, msg,
-        IF(k<=n, INDEX(tok,k),
-          LET(r, k-(n+1),
-            IF(r<=rowsRight, INDEX(rightArr, r), "")
-          )
-        )
-      )
-    ),
-    ""
-  )
-)
-
-
-BORI WITH TOKENS AND VOID TRANSACTION:
+===============================================================================================================================================
+-
+-
+-
+-
+===============================================================================================================================================
+[Q] - ALL **** VOID - BORI - VOID
+===============================================================================================================================================
 
 =LET(
-  tok, TEXTBEFORE(N11#,":"),                        
+  tok, TEXTBEFORE(M11#,":"),
   n, ROWS(tok),
-  pRange, P11:INDEX(P:P, ROW(P11)+n-1),              
+  pRange, O11:INDEX(O:O, ROW(O11)+n-1),
   pNorm, UPPER(TRIM(pRange)),
 
   yesList, IFERROR(FILTER(tok, pNorm="YES"), ""),
@@ -167,7 +152,7 @@ BORI WITH TOKENS AND VOID TRANSACTION:
   rowsRight, SUM(--rightMask),
   rightTok, IF(rowsRight=0, "", INDEX(revTok, FILTER(SEQUENCE(n), rightMask))),
 
-  total, 2*(2*n+1),                                  
+  total, 2*(2*n+1),
   seq, SEQUENCE(1,total),
 
   IF(ISODD(seq),
@@ -190,160 +175,4 @@ BORI WITH TOKENS AND VOID TRANSACTION:
     ""
   )
 )
-
-
-CREATE DAYS ACTION DONE
-
-=LET(
-  last, LOOKUP(2,1/(M:M<>""),ROW(M:M)),
-  rng, M2:INDEX(M:M,last),
-  counts, BYROW(rng, LAMBDA(x,
-    LET(arr, TEXTSPLIT(TRIM(x), ",",,TRUE), IFERROR(COLUMNS(FILTER(arr, arr<>"" )), 0))
-  )),
-  maxN, MAX(counts),
-  nums, 2*maxN+1,
-  total, 2*nums,
-  seq, SEQUENCE(1, total),
-  IF(ISODD(seq), "[ Action ]", "Done")
-)
-
-
----------
-
-SCRIPT ROWS
-
-function main(workbook: ExcelScript.Workbook) {
-  const sheet = workbook.getActiveWorksheet();
-
-  // ---- Settings ----
-  const START_ROW = 4;        // Start at M4
-  const COL_LETTER = "M";     // Work in column M
-  const COL_INDEX = 12;       // 0-based column index for M (A=0,...,M=12)
-
-  // Find the last non-blank row in column M
-  const usedM = sheet.getRange(`${COL_LETTER}:${COL_LETTER}`).getUsedRange();
-  if (!usedM) {
-    console.log("Column M has no used cells.");
-    return;
-  }
-  const usedStartRow = usedM.getRowIndex();           // 0-based row of first used cell in M
-  const usedRowCount = usedM.getRowCount();
-  const lastRowInM = usedStartRow + usedRowCount - 1; // 0-based row of last used cell in M
-
-  // Normalize start row to at least the first used row in M
-  const startRowIdx = Math.max(START_ROW - 1, usedStartRow);
-
-  // Process from bottom to top to avoid index shifting issues
-  let totalInserted = 0;
-  for (let r = lastRowInM; r >= startRowIdx; r--) {
-    const cell = sheet.getCell(r, COL_INDEX);
-    const raw = (cell.getValue() ?? "").toString();
-
-    // Count tokens: split by comma, trim, drop empties
-    const tokens = raw
-      .split(",")
-      .map(s => s.trim())
-      .filter(s => s.length > 0);
-
-    const tokenCount = tokens.length;
-
-    if (tokenCount > 1) {
-      const rowsToInsert = tokenCount - 1;
-
-      // Insert whole rows BELOW the current row (r). Insert starting at (r+1)
-      // We insert 'rowsToInsert' entire rows in one go.
-      const insertAtRow = r + 1; // 0-based
-      const rowRange = sheet.getRangeByIndexes(insertAtRow, 0, rowsToInsert, 1).getEntireRow();
-      rowRange.insert(ExcelScript.InsertShiftDirection.down);
-
-      totalInserted += rowsToInsert;
-      // No need to adjust 'r' since we are moving upward; new rows are below r.
-    }
-  }
-
-  console.log(`Done. Inserted ${totalInserted} rows in total below Column M tokens.`);
-}
-
-SCRIPT UDATED***
-
-function main(workbook: ExcelScript.Workbook) {
-  const sheet = workbook.getActiveWorksheet();
-
-  // ===== Settings =====
-  const START_ROW = 4;        // Start at J4
-  const COL_LETTER = "J";     // Work in column J
-  const COL_INDEX = 9;        // 0-based index for column J (A=0,...,J=9)
-
-  // Find the last non-blank row in column J
-  const usedJ = sheet.getRange(`${COL_LETTER}:${COL_LETTER}`).getUsedRange();
-  if (!usedJ) {
-    console.log("Column J has no used cells.");
-    return;
-  }
-  const usedStartRow = usedJ.getRowIndex();                 // 0-based first used row in J
-  const usedRowCount = usedJ.getRowCount();
-  const lastRowInJ = usedStartRow + usedRowCount - 1;       // 0-based last used row in J
-
-  // Normalize start row to at least the first used row in J
-  const startRowIdx = Math.max(START_ROW - 1, usedStartRow);
-
-  let totalInserted = 0;
-
-  // Process from bottom to top
-  for (let r = lastRowInJ; r >= startRowIdx; r--) {
-    const val = sheet.getCell(r, COL_INDEX).getValue();
-    // Coerce to a non-negative integer; treat blanks/non-numbers as 0
-    const n = Number(val);
-    const count = (isFinite(n) && !isNaN(n)) ? Math.floor(n) : 0;
-
-    // Rows to insert = (J - 1), but never less than 0
-    const rowsToInsert = Math.max(0, count - 1);
-
-    if (rowsToInsert > 0) {
-      const insertAtRow = r + 1; // insert BELOW current row
-      const rowRange = sheet
-        .getRangeByIndexes(insertAtRow, 0, rowsToInsert, 1)
-        .getEntireRow();
-
-      rowRange.insert(ExcelScript.InsertShiftDirection.down);
-      totalInserted += rowsToInsert;
-    }
-  }
-
-  console.log(`Done. Inserted ${totalInserted} rows in total based on Column J counts.`);
-}
-
-
-
-
-=LET(
-  last, LOOKUP(2,1/(L4:L<>""),ROW(L4:L)),
-  rngL, L4:INDEX(L:L,last),
-  needsSpill, SUMPRODUCT( (LEN(TRIM(rngL))>0) * ((LEN(TRIM(rngL)) - LEN(SUBSTITUTE(TRIM(rngL),",","")) + 1) > 1) ) > 0,
-  IF(needsSpill,
-     "Run Script",
-     IF(LEN(TRIM(L4))=0,"",
-       LET(
-         parts, TEXTSPLIT(TRIM(L4), ",", , TRUE),
-         tok,   FILTER(TRIM(parts), TRIM(parts)<>""),
-         desc,  SORTBY(tok, VALUE(tok), -1),
-         TRANSPOSE(desc) & ":"
-       )
-     )
-  )
-)
-
-
-=SUMPRODUCT(--($L$4:$L$1000<>""), --(LEN($L$4:$L$1000)-LEN(SUBSTITUTE($L$4:$L$1000,",",""))>=1))>0
-
-=IF($M$3,
-   "Run Script",
-   LET(
-     parts, TEXTSPLIT(TRIM(L4), ",", , TRUE),
-     tok,   FILTER(TRIM(parts), TRIM(parts)<>""),
-     desc,  SORTBY(tok, VALUE(tok), -1),
-     TRANSPOSE(desc) & ":"
-   )
-)
-
 
