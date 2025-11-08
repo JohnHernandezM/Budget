@@ -2,11 +2,13 @@ function main(workbook: ExcelScript.Workbook) {
   const sheet = workbook.getActiveWorksheet();
 
   // ===== Settings =====
-  const START_ROW = 4;         // J4 (1-based)
-  const COL_INDEX = 9;         // Column J (0-based: A=0 ... J=9)
+  const START_ROW: number = 4;         // J4 (1-based)
+  const COL_INDEX: number = 9;         // Column J (0-based: A=0 ... J=9)
 
-  // Helper to treat a value as "blank" for our purposes
-  const isBlank = (v: any): boolean => v === null || v === undefined || v === "";
+  // Helper: safely check if a cell value is blank
+  const isBlank = (v: string | number | boolean | undefined | null): boolean => {
+    return v === null || v === undefined || v === "";
+  };
 
   // 1) Find last non-blank row in column J
   const usedJ = sheet.getRange("J:J").getUsedRange();
@@ -14,61 +16,60 @@ function main(workbook: ExcelScript.Workbook) {
     console.log("Column J has no used cells.");
     return;
   }
-  const firstUsedRow = usedJ.getRowIndex();           // 0-based
-  const usedRowCount = usedJ.getRowCount();
-  const lastUsedRow = firstUsedRow + usedRowCount - 1;
 
-  // Respect START_ROW (J4) as the minimum
-  const startIdx = Math.max(START_ROW - 1, firstUsedRow);
+  const firstUsedRow: number = usedJ.getRowIndex();          // 0-based
+  const usedRowCount: number = usedJ.getRowCount();
+  const lastUsedRow: number = firstUsedRow + usedRowCount - 1;
+
+  // Respect START_ROW (J4) as minimum
+  const startIdx: number = Math.max(START_ROW - 1, firstUsedRow);
 
   let inserted = 0;
   let skippedAlreadySatisfied = 0;
   let skippedNoRequirement = 0;
   let skippedNonNumeric = 0;
 
-  // 2) Walk bottom → top
+  // 2) Process bottom → top
   for (let r = lastUsedRow; r >= startIdx; r--) {
-    const v = sheet.getCell(r, COL_INDEX).getValue();
+    const cellValue = sheet.getCell(r, COL_INDEX).getValue() as string | number | boolean | null;
 
-    // Ignore actual blank cells in J (these are typically the spacer rows)
-    if (isBlank(v)) continue;
+    // Skip blanks (spacer rows)
+    if (isBlank(cellValue)) continue;
 
-    // Coerce to integer; if not numeric, skip
-    const n = Number(v);
+    // Try to convert to number
+    const n: number = Number(cellValue);
     if (!isFinite(n) || isNaN(n)) {
       skippedNonNumeric++;
       continue;
     }
 
-    // 3) Required blanks = max(n-1, 0). Only act if > 0.
-    const required = Math.max(0, Math.floor(n) - 1);
+    // 3) Rows required = value - 1
+    const required: number = Math.max(0, Math.floor(n) - 1);
     if (required <= 0) {
       skippedNoRequirement++;
       continue;
     }
 
-    // 4) Count how many of the next `required` cells in J are already blank
+    // 4) Count consecutive blanks below
     let haveLeadingBlanks = 0;
     for (let k = 1; k <= required; k++) {
       const rr = r + k;
-      // Cells beyond current used area are effectively blank (Excel rows exist)
-      const vv = sheet.getCell(rr, COL_INDEX).getValue();
-      if (isBlank(vv)) {
+      const nextValue = sheet.getCell(rr, COL_INDEX).getValue() as string | number | boolean | null;
+      if (isBlank(nextValue)) {
         haveLeadingBlanks++;
       } else {
-        break; // stop at the first non-blank
+        break;
       }
     }
 
     if (haveLeadingBlanks >= required) {
-      // 5) Already satisfied → do nothing
       skippedAlreadySatisfied++;
-      continue;
+      continue; // no insertion needed
     }
 
-    // 6) Insert only what's missing, directly below the value row
-    const missing = required - haveLeadingBlanks;
-    const insertAt = r + 1; // directly below
+    // 5) Insert missing rows below current row
+    const missing: number = required - haveLeadingBlanks;
+    const insertAt: number = r + 1;
     const rowRange = sheet
       .getRangeByIndexes(insertAt, 0, missing, 1)
       .getEntireRow();
@@ -78,12 +79,13 @@ function main(workbook: ExcelScript.Workbook) {
   }
 
   console.log(
-    `Done. Inserted ${inserted} row(s). ` +
+    `✅ Done. Inserted ${inserted} row(s). ` +
     `Already satisfied: ${skippedAlreadySatisfied}. ` +
     `No requirement (<=1): ${skippedNoRequirement}. ` +
     `Non-numeric skipped: ${skippedNonNumeric}.`
   );
 }
+
 
 
 
