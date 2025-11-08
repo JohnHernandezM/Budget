@@ -170,4 +170,48 @@ function main(workbook: ExcelScript.Workbook)
     ),
     ""
   )
+
+
+===============================================================================================================================================
+
+
+TEST
+
+
+function main(workbook: ExcelScript.Workbook) {
+  const sheet = workbook.getActiveWorksheet();
+
+  // 1) Find last non-blank row in column J (starting from J4)
+  const startRow = 4;                   // J4
+  const colJ = sheet.getRange("J:J").getUsedRange(); // used portion of J
+  if (!colJ) return;                    // no data at all in column J
+
+  const usedStartRow = colJ.getRowIndex() + 1;       // 1-based row of first used cell in J
+  const usedRowCount = colJ.getRowCount();
+  const usedEndRow = usedStartRow + usedRowCount - 1;
+
+  const lastRow = Math.max(startRow, usedEndRow);    // ensure at least J4
+
+  // 2) Target range for checkboxes/booleans: K4:K(lastRow)
+  const count = lastRow - startRow + 1;
+  const target = sheet.getRange(`K${startRow}:K${lastRow}`);
+
+  // 3) Initialize with FALSE (unchecked). Clear first to avoid leftovers.
+  target.clear(ExcelScript.ClearApplyTo.all);
+  const values: (boolean | string | number)[][] = Array.from({ length: count }, () => [false]);
+  target.setValues(values);
+
+  // Optional niceties:
+  // - Set a header in K3
+  sheet.getRange("K3").setValue("Done");
+  // - Center the column visually
+  target.getFormat().setHorizontalAlignment(ExcelScript.HorizontalAlignment.center);
+  // - Set a consistent column width
+  sheet.getRange("K:K").getFormat().setColumnWidth(12);
+
+  // If your tenant supports cell checkboxes, you can try toggling one cell to show the UI intent:
+  // (In some builds, writing booleans is enough; otherwise, users can Insert > Checkbox once
+  // and copy the format down.)
+}
+
 ), "")
