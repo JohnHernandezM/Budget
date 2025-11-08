@@ -268,38 +268,33 @@ function main(workbook: ExcelScript.Workbook)
 =================
 
 =LET(
-  first, 4,
-  last, MAX(first, LOOKUP(2, 1/(J:J<>""), ROW(J:J))),
-  rng, INDEX(J:J, first):INDEX(J:J, last),
-  nrows, ROWS(rng),
-  baseRow, ROW(INDEX(rng,1,1)),
+  first,4,
+  last,MAX(first,LOOKUP(2,1/(J:J<>""),ROW(J:J))),
+  rng,INDEX(J:J,first):INDEX(J:J,last),
+  nrows,ROWS(rng),
+  baseRow,ROW(INDEX(rng,1,1)),
   passArr,
     BYROW(rng,
       LAMBDA(x,
         LET(
-          pos, ROW(x)-baseRow+1,
-          v, x,
-          req, MAX(0, INT(N(v)) - 1),
+          pos,ROW(x)-baseRow+1,
+          v,x,
+          req,MAX(0,INT(N(v))-1),
           IF(
             req=0,
             TRUE,
             LET(
-              startPos, pos+1,
-              endPos, MIN(pos+req, nrows),
+              startPos,pos+1,
+              endPos,MIN(pos+req,nrows),
               IF(
                 startPos>endPos,
-                TRUE,                                           /* need blanks beyond range → OK */
-                COUNTIF(INDEX(rng,startPos):INDEX(rng,endPos), "<>")=0
+                TRUE,
+                COUNTIF(INDEX(rng,startPos):INDEX(rng,endPos),"<>")=0
               )
             )
           )
         )
       )
     ),
-  IF(AND(passArr), "PASS", "")
+  IF(AND(passArr),"PASS","")
 )
-
-    ),
-    ""
-  )
-
