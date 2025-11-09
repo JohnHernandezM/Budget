@@ -66,7 +66,7 @@ Data Validation:
 *** Days ***
 
 =LET(
-  rowStart, 4,
+  rowStart, 9,
   rowEnd, MAX(rowStart, LOOKUP(2, 1/(K:K<>""), ROW(K:K))),
   rng, INDEX(K:K, rowStart):INDEX(K:K, rowEnd),
   maxN, MAX(rng),
