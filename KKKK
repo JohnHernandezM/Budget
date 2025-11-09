@@ -64,20 +64,6 @@ Data Validation:
 =============================================================== HEADERS ============================================================
 
 *** Days ***
-
-=LET(
-  rowStart, 9,
-  rowEnd, MAX(rowStart, LOOKUP(2, 1/(K:K<>""), ROW(K:K))),
-  rng, INDEX(K:K, rowStart):INDEX(K:K, rowEnd),
-  maxN, MAX(rng),
-  nums, maxN*2 + 1,
-  total, 2*nums,
-  seq, SEQUENCE(1, total),
-  IF(ISODD(seq), "Day " & (seq+1)/2, "")
-)
-
-TEST
-
 =LET(
   rowStart, 9,
   lastRow, IFERROR(LOOKUP(2,1/(K:K<>""),ROW(K:K)), 0),
@@ -109,4 +95,24 @@ TEST
   total, 2*nums,
   seq, SEQUENCE(1, total),
   IF(ISODD(seq), "Action", "Done")
+)
+
+
+=LET(
+  rowStart, 9,
+  lastRow, IFERROR(LOOKUP(2,1/(K:K<>""),ROW(K:K)), 0),
+  rowEnd, MAX(rowStart, lastRow),
+  rng, INDEX(K:K, rowStart):INDEX(K:K, rowEnd),
+  hasData, COUNTA(rng)>0,
+  IF(
+    hasData,
+    LET(
+      maxN, MAX(rng),
+      nums, maxN*2 + 1,
+      total, 2*nums,
+      seq, SEQUENCE(1, total),
+      IF(ISODD(seq), "Action", "Done")
+    ),
+    ""
+  )
 )
