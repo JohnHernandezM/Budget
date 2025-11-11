@@ -1,47 +1,65 @@
 ==================================== SCRIPT COLUMN WIDTH ====================================
+
+
 function main(workbook: ExcelScript.Workbook) {
   const sheet = workbook.getActiveWorksheet();
   if (!sheet) return;
 
-  // Convert 0-based column index to Excel letter(s): 0 -> A, 1 -> B, ..., 25 -> Z, 26 -> AA, etc.
-  const toColLetter = (idx: number): string => {
-    let n = idx + 1;
-    let s = "";
-    while (n > 0) {
-      const r = (n - 1) % 26;
-      s = String.fromCharCode(65 + r) + s;
-      n = Math.floor((n - 1) / 26);
-    }
-    return s;
+  const TEMP_ROW = 5000; // off-screen helper row
+  const FONT_NAME = "Aptos Narrow";
+  const FONT_SIZE = 11;
+
+  // Helper: build a string of N characters. Using "0" matches typical numeric widths.
+  const repeatChars = (count: number): string => {
+    if (!Number.isFinite(count) || count < 0) return "";
+    return "0".repeat(Math.max(0, Math.floor(count)));
   };
 
   let col = 0;       // A = 0
-  let usedCols = 0;  // how many columns we processed before hitting a blank
+  let usedCols = 0;  // how many headers we processed before first blank
 
   while (true) {
-    const cell = sheet.getCell(0, col); // row 1 (0-based), current column
+    const cell = sheet.getCell(0, col); // Row 1, current column
     const v = cell.getValue();
 
     // Stop at first blank
     if (v === "" || v === null || v === undefined) break;
 
-    // Coerce text like "12" to a number
-    const width = (typeof v === "number") ? v : Number(v);
-    if (Number.isFinite(width)) {
-      const colLetter = toColLetter(col);
-      // Set width on the entire column via "A:A" style address
-      sheet.getRange(`${colLetter}:${colLetter}`).getFormat().setColumnWidth(width);
+    // Accept numbers or numeric text like "12"
+    const n = (typeof v === "number") ? v : Number(v);
+    if (Number.isFinite(n) && n > 0) {
+      const tempCell = sheet.getCell(TEMP_ROW, col);
+      const prevVal = tempCell.getValue();
+
+      // Put n characters, set font, then autofit this single cell (affects the whole column)
+      tempCell.setValue(repeatChars(n));
+      const fmt = tempCell.getFormat();
+      const font = fmt.getFont();
+      font.setName(FONT_NAME);
+      font.setSize(FONT_SIZE);
+
+      // Autofit only this cell's column based on its content
+      fmt.autofitColumns();
+
+      // Clean up temp cell
+      if (prevVal === "" || prevVal === null || prevVal === undefined) {
+        tempCell.clear(ExcelScript.ClearApplyTo.contents);
+      } else {
+        tempCell.setValue(prevVal);
+      }
     }
 
     usedCols = col + 1;
     col++;
   }
 
-  // Clear only the portion of row 1 we actually used (e.g., A1:E1)
+  // Clear only the used portion of row 1 (e.g., A1:E1)
   if (usedCols > 0) {
-    sheet.getRangeByIndexes(0, 0, 1, usedCols).clear(ExcelScript.ClearApplyTo.contents);
+    sheet.getRangeByIndexes(0, 0, 1, usedCols)
+         .clear(ExcelScript.ClearApplyTo.contents);
   }
 }
+
 
 
 
