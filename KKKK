@@ -1,4 +1,7 @@
 ==================================== SCRIPT COLUMN WIDTH ====================================
+
+
+
 function main(workbook: ExcelScript.Workbook) {
   const target = workbook.getActiveWorksheet();
   if (!target) return;
@@ -6,20 +9,20 @@ function main(workbook: ExcelScript.Workbook) {
   const FONT_NAME = "Aptos Narrow";
   const FONT_SIZE = 11;
   const TEMP_BASENAME = "_tmp_width_calib";
+  const TEMP_COL_LETTER = "A"; // we always calibrate on column A of the temp sheet
+  const TEMP_CELL = "A1";
 
-  // Create a uniquely named temp sheet (and keep it hidden)
+  // Create a unique temp sheet and make sure target remains active
   const temp = createTempSheet(workbook, TEMP_BASENAME);
-  try {
-    // We will always use A column on temp for measuring
-    const tempColLetter = "A";
-    const TEMP_ROW = 1; // row 1 is fine on temp since it's empty
+  const original = target;
+  workbook.setActiveWorksheet(original);
 
-    // Process A1, B1, ... until first blank
+  try {
     let col = 0;        // A=0
-    let usedCols = 0;   // how many headers we processed
+    let usedCols = 0;   // how many headers processed before first blank
 
     while (true) {
-      const headerCell = target.getCell(0, col);
+      const headerCell = target.getCell(0, col); // row 1 (0-based)
       const v = headerCell.getValue();
 
       // Stop at first blank
@@ -28,57 +31,63 @@ function main(workbook: ExcelScript.Workbook) {
       // Accept numeric or numeric text
       const n = (typeof v === "number") ? v : Number(v);
       if (Number.isFinite(n) && n > 0) {
-        // Build a string of exactly n zeros
-        const str = "0".repeat(Math.floor(n));
+        const zeros = "0".repeat(Math.floor(n));
 
-        // Put it in temp sheet A1, set font, no wrap, then autofit that column
-        const tempCell = temp.getCell(TEMP_ROW - 1, 0); // A1
-        const prevVal = tempCell.getValue();
+        // --- Calibrate on the temp sheet using the WHOLE COLUMN ("A:A") ---
+        const tempCell = temp.getRange(TEMP_CELL);
+        const tempColRange = temp.getRange(`${TEMP_COL_LETTER}:${TEMP_COL_LETTER}`);
 
-        tempCell.setValue(str);
-        const fmt = tempCell.getFormat();
-        const font = fmt.getFont();
-        font.setName(FONT_NAME);
-        font.setSize(FONT_SIZE);
-        fmt.setWrapText(false);
+        // Put N zeros in A1 and set font & wrap
+        tempCell.setValue(zeros);
+        const cellFmt = tempCell.getFormat();
+        const cellFont = cellFmt.getFont();
+        cellFont.setName(FONT_NAME);
+        cellFont.setSize(FONT_SIZE);
+        cellFmt.setWrapText(false);
 
-        // Autofit only this temp cell's column on the temp sheet
-        fmt.autofitColumns();
+        // Autofit the entire column A on the temp sheet so it fits exactly N zeros
+        tempColRange.getFormat().autofitColumns();
 
-        // Read the resulting column width in points from the temp sheet
-        const widthPts = temp.getRange(`${tempColLetter}:${tempColLetter}`)
-                             .getFormat()
-                             .getColumnWidth();
+        // Read resulting width in points from the temp column
+        const widthPts = tempColRange.getFormat().getColumnWidth();
 
-        // Apply that exact width to the target sheet column
-        const targetColLetter = toColLetter(col);
-        target.getRange(`${targetColLetter}:${targetColLetter}`)
-              .getFormat()
-              .setColumnWidth(widthPts);
+        // Apply the measured width to the corresponding target column
+        const colLetter = toColLetter(col);
+        const targetColRange = target.getRange(`${colLetter}:${colLetter}`);
+        targetColRange.getFormat().setWrapText(false);
+        targetColRange.getFormat().setColumnWidth(widthPts);
 
-        // Clean temp cell (restore if it had a value, else clear)
-        if (prevVal === "" || prevVal === null || prevVal === undefined) {
-          tempCell.clear(ExcelScript.ClearApplyTo.contents);
-        } else {
-          tempCell.setValue(prevVal);
-        }
+        // Clean temp cell for next pass
+        tempCell.clear(ExcelScript.ClearApplyTo.contents);
       }
 
       usedCols = col + 1;
       col++;
     }
 
-    // Clear only the used portion of row 1 on the target sheet (e.g., A1:E1)
+    // Clear only A1:...(used) on the target sheet
     if (usedCols > 0) {
       target.getRangeByIndexes(0, 0, 1, usedCols)
             .clear(ExcelScript.ClearApplyTo.contents);
     }
   } finally {
-    // Delete temp sheet no matter what
-    temp.delete();
+    // Return to the original sheet BEFORE deleting temp (prevents delete errors)
+    workbook.setActiveWorksheet(original);
+    try {
+      // Only delete if there are other sheets present
+      if (workbook.getWorksheets().length > 1) {
+        temp.delete();
+      } else {
+        // Fallback: just hide if it's the only sheet (shouldn't happen, but safe)
+        temp.setVisibility(ExcelScript.SheetVisibility.veryHidden);
+      }
+    } catch (e) {
+      // If delete still fails in your environment, hide it instead
+      try { temp.setVisibility(ExcelScript.SheetVisibility.veryHidden); } catch {}
+    }
   }
 
-  // --- helpers ---
+  // ---------- helpers ----------
   function toColLetter(idx: number): string {
     let n = idx + 1, s = "";
     while (n > 0) {
@@ -90,15 +99,12 @@ function main(workbook: ExcelScript.Workbook) {
   }
 
   function createTempSheet(wb: ExcelScript.Workbook, base: string): ExcelScript.Worksheet {
-    // Ensure unique name
+    // Ensure a unique name
     const existing = new Set(wb.getWorksheets().map(ws => ws.getName()));
-    let name = base;
-    let i = 1;
-    while (existing.has(name)) {
-      name = `${base}_${i++}`;
-    }
+    let name = base, i = 1;
+    while (existing.has(name)) name = `${base}_${i++}`;
     const ws = wb.addWorksheet(name);
-    // Try to hide it (if supported)
+    // Try to keep it very hidden
     try { ws.setVisibility(ExcelScript.SheetVisibility.veryHidden); } catch {}
     return ws;
   }
