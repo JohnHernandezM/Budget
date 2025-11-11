@@ -1,3 +1,34 @@
+==================================== SCRIPT COLUMN WIDTH ====================================
+
+function main(workbook: ExcelScript.Workbook) {
+  // Get the active sheet
+  const sheet = workbook.getActiveWorksheet();
+
+  // Get all values in the first row
+  const firstRow = sheet.getRange("1:1");
+  const values = firstRow.getValues()[0];
+
+  // Loop through columns until a blank is found
+  for (let i = 0; i < values.length; i++) {
+    const val = values[i];
+
+    // Stop when first blank cell is found
+    if (val === "" || val === null) break;
+
+    // Only apply width if value is numeric
+    if (typeof val === "number") {
+      sheet.getRangeByIndexes(0, i, 1, 1).getColumn().setWidth(val);
+    }
+  }
+
+  // Clear the first row to clean up
+  firstRow.clear(ExcelScript.ClearApplyTo.contents);
+}
+
+
+=============================================================================================
+
+
 1. Paste the initial Policy Data in Table 1, and start working on Table 2. 
 2. [L]: Void   —  Enter all endorsements that need to be voided, separating each item with a comma.
 3. [M]: TRN  —  Run the "WC – Clean-Up – TRN" script. (Navigate to Automate > All Scripts > Run Script, or simply click RUN!)
