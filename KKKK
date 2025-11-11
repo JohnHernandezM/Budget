@@ -1,7 +1,5 @@
 ==================================== SCRIPT COLUMN WIDTH ====================================
 
-
-
 function main(workbook: ExcelScript.Workbook) {
   const target = workbook.getActiveWorksheet();
   if (!target) return;
