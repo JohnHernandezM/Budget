@@ -1,6 +1,6 @@
-1. [M] | Void: Enter all endorsements that need to be voided, separating each item with a comma.
-2. [N] | TRN: Run the "WC – Clean-Up – TRN"  script. (Navigate to Automate > All Scripts > Run Script; or simply click 
-3. Continue filling the Template accordingly.
+1. Paste the initial Policy Data in Table 1, and start working on Table 2. 
+2. [L]: Void   —  Enter all endorsements that need to be voided, separating each item with a comma.
+3. [M]: TRN  —  Run the "WC – Clean-Up – TRN" script. (Navigate to Automate > All Scripts > Run Script, or simply click RUN!)
 
 *** TRN ***
 
