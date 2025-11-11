@@ -65,10 +65,10 @@ Data Validation:
 
 *** Days ***
 =LET(
-  rowStart, 9,
-  lastRow, IFERROR(LOOKUP(2,1/(K:K<>""),ROW(K:K)), 0),
+  rowStart, 8,
+  lastRow, IFERROR(LOOKUP(2,1/(J:J<>""),ROW(J:J)), 0),
   rowEnd, MAX(rowStart, lastRow),
-  rng, INDEX(K:K, rowStart):INDEX(K:K, rowEnd),
+  rng, INDEX(J:J, rowStart):INDEX(J:J, rowEnd),
   hasData, COUNTA(rng)>0,
   IF(
     hasData,
