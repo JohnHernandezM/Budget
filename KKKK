@@ -1,29 +1,46 @@
 ==================================== SCRIPT COLUMN WIDTH ====================================
 
 function main(workbook: ExcelScript.Workbook) {
-  // Get the active sheet
+  // Get the active worksheet
   const sheet = workbook.getActiveWorksheet();
+  if (!sheet) {
+    console.log("No active sheet found.");
+    return;
+  }
 
-  // Get all values in the first row
+  // Get first row range
   const firstRow = sheet.getRange("1:1");
-  const values = firstRow.getValues()[0];
+  if (!firstRow) {
+    console.log("Unable to access row 1.");
+    return;
+  }
 
-  // Loop through columns until a blank is found
+  // Get values safely
+  const rowValues = firstRow.getValues();
+  if (!rowValues || rowValues.length === 0) {
+    console.log("No values found in the first row.");
+    return;
+  }
+
+  const values = rowValues[0];
+
+  // Loop through columns until a blank cell is found
   for (let i = 0; i < values.length; i++) {
     const val = values[i];
 
-    // Stop when first blank cell is found
     if (val === "" || val === null) break;
 
-    // Only apply width if value is numeric
     if (typeof val === "number") {
       sheet.getRangeByIndexes(0, i, 1, 1).getColumn().setWidth(val);
     }
   }
 
-  // Clear the first row to clean up
+  // Clear contents of the first row to clean up
   firstRow.clear(ExcelScript.ClearApplyTo.contents);
+
+  console.log("Column widths set and first row cleared successfully.");
 }
+
 
 
 =============================================================================================
