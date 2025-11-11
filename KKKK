@@ -1,3 +1,5 @@
+https://resultados1978.icfesinteractivo.gov.co/resultados/res_est/sniee_log_per.jsp
+
 =LET(
     tbl, B5:K29,
     names, INDEX(tbl,,10),
