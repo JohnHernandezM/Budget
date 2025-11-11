@@ -1,6 +1,5 @@
 ==================================== SCRIPT COLUMN WIDTH ====================================
 
-
 function main(workbook: ExcelScript.Workbook) {
   const target = workbook.getActiveWorksheet();
   if (!target) return;
@@ -8,14 +7,29 @@ function main(workbook: ExcelScript.Workbook) {
   const FONT_NAME = "Aptos Narrow";
   const FONT_SIZE = 11;
   const TEMP_NAME = "_tmp_width_calib";   // persistent hidden helper
-  const TEMP_COL_LETTER = "A";            // use column A for measuring
-  const TEMP_CELL = "A1";
+  const COL_LETTER = "A";                 // use column A on helper
+  const CELL_ADDR = "A1";
 
-  // Get or create a hidden temp sheet we can reuse; never delete (avoid 0xA7120001)
-  const temp = getOrCreateHiddenSheet(workbook, TEMP_NAME);
+  // Get or create a veryHidden helper sheet (never delete to avoid errors)
+  const helper = getOrCreateHiddenSheet(workbook, TEMP_NAME);
+
+  // --- Calibrate width function px = a * n + b for your font/env ---
+  // We measure widths for n1 and n2 zeros and solve for a (slope) and b (padding).
+  const n1 = 5;
+  const n2 = 15;
+  const px1 = measurePixelsForZeros(helper, COL_LETTER, CELL_ADDR, n1, FONT_NAME, FONT_SIZE);
+  const px2 = measurePixelsForZeros(helper, COL_LETTER, CELL_ADDR, n2, FONT_NAME, FONT_SIZE);
+  const a = (px2 - px1) / (n2 - n1);   // pixels per zero
+  const b = px1 - a * n1;              // padding in pixels
+
+  // Safety guard: if calibration failed for some reason, bail early
+  if (!isFinite(a) || !isFinite(b) || a <= 0) {
+    console.log(`Calibration failed. a=${a}, b=${b}`);
+    return;
+  }
 
   let col = 0;       // A=0
-  let usedCols = 0;  // count processed before first blank
+  let usedCols = 0;
 
   while (true) {
     const headerCell = target.getCell(0, col); // row 1 (0-based)
@@ -26,20 +40,28 @@ function main(workbook: ExcelScript.Workbook) {
 
     const n = (typeof v === "number") ? v : Number(v);
     if (Number.isFinite(n) && n > 0) {
-      const widthPts = measureWidthForZeros(temp, TEMP_COL_LETTER, TEMP_CELL, Math.floor(n), FONT_NAME, FONT_SIZE);
+      // Desired pixel width for exactly n zeros (round like Excel)
+      const targetPx = Math.max(0, Math.round(a * n + b));
+      const targetPts = targetPx * 0.75; // 96 dpi: 1px = 0.75pt
 
-      // Apply that exact width (points) to the target column
       const colLetter = toColLetter(col);
-      const targetCol = target.getRange(`${colLetter}:${colLetter}`);
-      targetCol.getFormat().setWrapText(false);     // ensure single-line width behavior
-      targetCol.getFormat().setColumnWidth(widthPts);
+      const colRange = target.getRange(`${colLetter}:${colLetter}`);
+      const fmt = colRange.getFormat();
+
+      // Ensure the font on the real column matches calibration
+      const f = fmt.getFont();
+      f.setName(FONT_NAME);
+      f.setSize(FONT_SIZE);
+      fmt.setWrapText(false);
+
+      fmt.setColumnWidth(targetPts);
     }
 
     usedCols = col + 1;
     col++;
   }
 
-  // Clear the used portion of row 1 (e.g., A1:E1)
+  // Clear only the used portion of row 1 (e.g., A1:E1)
   if (usedCols > 0) {
     target.getRangeByIndexes(0, 0, 1, usedCols).clear(ExcelScript.ClearApplyTo.contents);
   }
@@ -57,55 +79,49 @@ function main(workbook: ExcelScript.Workbook) {
 
   function getOrCreateHiddenSheet(wb: ExcelScript.Workbook, name: string): ExcelScript.Worksheet {
     let ws = wb.getWorksheets().find(w => w.getName() === name);
-    if (!ws) {
-      ws = wb.addWorksheet(name);
-    }
+    if (!ws) ws = wb.addWorksheet(name);
     try { ws.setVisibility(ExcelScript.SheetVisibility.veryHidden); } catch {}
     return ws;
   }
 
   /**
-   * Measure the column width (in points) needed to fit exactly `count` zeros
-   * using the given font on a clean helper column.
+   * Autofits the entire helper column to exactly `count` zeros in the given font,
+   * then returns the resulting width in pixels.
    */
-  function measureWidthForZeros(
-    helperSheet: ExcelScript.Worksheet,
+  function measurePixelsForZeros(
+    ws: ExcelScript.Worksheet,
     colLetter: string,
     cellAddr: string,
     count: number,
     fontName: string,
     fontSize: number
   ): number {
-    const zeros = "0".repeat(Math.max(0, count));
+    const zeros = "0".repeat(Math.max(0, Math.floor(count)));
+    const col = ws.getRange(`${colLetter}:${colLetter}`);
+    const cell = ws.getRange(cellAddr);
 
-    // Work on the entire column to mirror Excel's "Column Width" behavior
-    const colRange = helperSheet.getRange(`${colLetter}:${colLetter}`);
-    const cell = helperSheet.getRange(cellAddr);
+    // Reset column small, disable wrap, enforce font on both cell and column
+    col.getFormat().setColumnWidth(10); // tiny width reset (points)
+    col.getFormat().setWrapText(false);
+    const colFont = col.getFormat().getFont();
+    colFont.setName(fontName);
+    colFont.setSize(fontSize);
 
-    // Reset column first to avoid prior content influencing autofit
-    colRange.getFormat().setColumnWidth(8 * 72 / 8); // arbitrary small width reset (8pt)
-    colRange.getFormat().setWrapText(false);
-
-    // Put N zeros in A1 and enforce font for BOTH the cell and the whole column
     cell.setValue(zeros);
     const cellFmt = cell.getFormat();
     cellFmt.setWrapText(false);
-    cellFmt.getFont().setName(fontName);
-    cellFmt.getFont().setSize(fontSize);
+    const cellFont = cellFmt.getFont();
+    cellFont.setName(fontName);
+    cellFont.setSize(fontSize);
 
-    const colFmt = colRange.getFormat();
-    colFmt.getFont().setName(fontName);
-    colFmt.getFont().setSize(fontSize);
-    colFmt.setWrapText(false);
+    // Autofit entire column so it fits exactly the zeros
+    col.getFormat().autofitColumns();
 
-    // Autofit the entire column based solely on this content & font
-    colFmt.autofitColumns();
-
-    // Read width (points), then clear the measuring cell
-    const widthPts = colFmt.getColumnWidth();
+    // Read width in points → convert to pixels (1px = 0.75pt)
+    const widthPts = col.getFormat().getColumnWidth();
     cell.clear(ExcelScript.ClearApplyTo.contents);
 
-    return widthPts;
+    return widthPts / 0.75;
   }
 }
 
