@@ -6,6 +6,120 @@ Instructions
 5. [O]: Inc. In BO/RI  —  Select whether you want to include the transaction within the BO/RI process. 
 6. Go to Output sheet, and keep working there. It works as a tracker, and you can copy and paste it anywhere you need. 
 
+=====================================================================================
+
+function main(workbook: ExcelScript.Workbook) {
+  const sheet = workbook.getActiveWorksheet();
+
+  // ===== Settings =====
+  const START_ROW: number = 15;    // Start scanning at J15 (1-based)
+  const COL_INDEX: number = 9;   // Column J (0-based: A=0 -> J=9)
+
+  // Helper: safely check if a cell value is blank
+  const isBlank = (v: string | number | boolean | undefined | null): boolean =>
+    v === null || v === undefined || v === "";
+
+  // 1) Find used range of column J
+  const usedJ = sheet.getRange("J:J").getUsedRange();
+  if (!usedJ) {
+    console.log("Column J has no used cells.");
+    return;
+  }
+
+  const firstUsedRow: number = usedJ.getRowIndex();     // 0-based
+  const usedRowCount: number = usedJ.getRowCount();
+  const lastUsedRow: number = firstUsedRow + usedRowCount - 1;
+
+  // Respect START_ROW (J15) as minimum
+  const startIdx: number = Math.max(START_ROW - 1, firstUsedRow);
+
+  let inserted = 0;
+  let skippedAlreadySatisfied = 0;
+  let skippedNoRequirement = 0;
+  let skippedNonNumeric = 0;
+  let forcedAtTail = 0;
+
+  // 1.a) Find the LAST row (>= startIdx) with numeric L > 1
+  let lastTargetRow = -1;
+  for (let r = lastUsedRow; r >= startIdx; r--) {
+    const v = sheet.getCell(r, COL_INDEX).getValue() as string | number | boolean | null;
+    if (isBlank(v)) continue;
+    const n = Number(v);
+    if (!isFinite(n) || isNaN(n)) continue;
+    if (Math.floor(n) > 1) {
+      lastTargetRow = r;
+      break;
+    }
+  }
+
+  // 2) Process bottom → top
+  for (let r = lastUsedRow; r >= startIdx; r--) {
+    const cellValue = sheet.getCell(r, COL_INDEX).getValue() as string | number | boolean | null;
+
+    // Skip blanks (spacer rows)
+    if (isBlank(cellValue)) continue;
+
+    // Try to convert to number
+    const n: number = Number(cellValue);
+    if (!isFinite(n) || isNaN(n)) {
+      skippedNonNumeric++;
+      continue;
+    }
+
+    // 3) Rows required = value - 1
+    const required: number = Math.max(0, Math.floor(n) - 1);
+    if (required <= 0) {
+      skippedNoRequirement++;
+      continue;
+    }
+
+    // 4) Count consecutive blanks below (up to 'required')
+    let haveLeadingBlanks = 0;
+    for (let L = 1; L <= required; L++) {
+      const rr = r + L;
+      const nextValue = sheet.getCell(rr, COL_INDEX).getValue() as string | number | boolean | null;
+      if (isBlank(nextValue)) {
+        haveLeadingBlanks++;
+      } else {
+        break;
+      }
+    }
+
+    const isTailTarget = (r === lastTargetRow);
+
+    if (haveLeadingBlanks >= required && !isTailTarget) {
+      // already satisfied for non-tail rows
+      skippedAlreadySatisfied++;
+      continue;
+    }
+
+    // 5) Insert rows
+    // - For tail target: insert exactly 'required' rows (force insertion)
+    // - Otherwise: insert only the missing amount
+    const missing: number = Math.max(0, required - haveLeadingBlanks);
+    const toInsert: number = isTailTarget ? required : missing;
+
+    if (toInsert > 0) {
+      const insertAt: number = r + 1;
+      const rowRange = sheet.getRangeByIndexes(insertAt, 0, toInsert, 1).getEntireRow();
+      rowRange.insert(ExcelScript.InsertShiftDirection.down);
+      inserted += toInsert;
+      if (isTailTarget) forcedAtTail++;
+    }
+  }
+
+  console.log(
+    `✅ Done. Inserted ${inserted} row(s). ` +
+    `Already satisfied: ${skippedAlreadySatisfied}. ` +
+    `No requirement (<=1): ${skippedNoRequirement}. ` +
+    `Non-numeric skipped: ${skippedNonNumeric}. ` +
+    `Forced at tail (last L>1): ${forcedAtTail}.`
+  );
+}
+
+
+
+====================================================================
 
 *** TRN ***
 
