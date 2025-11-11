@@ -3,36 +3,46 @@ function main(workbook: ExcelScript.Workbook) {
   const sheet = workbook.getActiveWorksheet();
   if (!sheet) return;
 
-  let col = 0;        // A = 0
-  let usedCols = 0;
+  // Convert 0-based column index to Excel letter(s): 0 -> A, 1 -> B, ..., 25 -> Z, 26 -> AA, etc.
+  const toColLetter = (idx: number): string => {
+    let n = idx + 1;
+    let s = "";
+    while (n > 0) {
+      const r = (n - 1) % 26;
+      s = String.fromCharCode(65 + r) + s;
+      n = Math.floor((n - 1) / 26);
+    }
+    return s;
+  };
+
+  let col = 0;       // A = 0
+  let usedCols = 0;  // how many columns we processed before hitting a blank
 
   while (true) {
-    const cell = sheet.getCell(0, col); // Row 1, current column
+    const cell = sheet.getCell(0, col); // row 1 (0-based), current column
     const v = cell.getValue();
 
     // Stop at first blank
     if (v === "" || v === null || v === undefined) break;
 
-    // Coerce numeric text to number
-    const width = typeof v === "number" ? v : Number(v);
+    // Coerce text like "12" to a number
+    const width = (typeof v === "number") ? v : Number(v);
     if (Number.isFinite(width)) {
-      // Apply width to the entire column (all rows, 1 column wide)
-      sheet
-        .getRangeByIndexes(0, col, sheet.getRowCount(), 1)
-        .getFormat()
-        .setColumnWidth(width);
+      const colLetter = toColLetter(col);
+      // Set width on the entire column via "A:A" style address
+      sheet.getRange(`${colLetter}:${colLetter}`).getFormat().setColumnWidth(width);
     }
 
     usedCols = col + 1;
     col++;
   }
 
-  // Clear only the used portion of row 1 (A1:…)
+  // Clear only the portion of row 1 we actually used (e.g., A1:E1)
   if (usedCols > 0) {
-    sheet.getRangeByIndexes(0, 0, 1, usedCols)
-         .clear(ExcelScript.ClearApplyTo.contents);
+    sheet.getRangeByIndexes(0, 0, 1, usedCols).clear(ExcelScript.ClearApplyTo.contents);
   }
 }
+
 
 
 =============================================================================================
