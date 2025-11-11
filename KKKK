@@ -1,10 +1,9 @@
 ==================================== SCRIPT COLUMN WIDTH ====================================
-
 function main(workbook: ExcelScript.Workbook) {
   const sheet = workbook.getActiveWorksheet();
   if (!sheet) return;
 
-  let col = 0; // A = 0
+  let col = 0;        // A = 0
   let usedCols = 0;
 
   while (true) {
@@ -14,17 +13,21 @@ function main(workbook: ExcelScript.Workbook) {
     // Stop at first blank
     if (v === "" || v === null || v === undefined) break;
 
-    // Coerce to number if it's text like "12"
+    // Coerce numeric text to number
     const width = typeof v === "number" ? v : Number(v);
-    if (!Number.isNaN(width) && Number.isFinite(width)) {
-      sheet.getRangeByIndexes(0, col, 1, 1).getColumn().setWidth(width);
+    if (Number.isFinite(width)) {
+      // Apply width to the entire column (all rows, 1 column wide)
+      sheet
+        .getRangeByIndexes(0, col, sheet.getRowCount(), 1)
+        .getFormat()
+        .setColumnWidth(width);
     }
 
-    usedCols = col + 1; // track how far we went
+    usedCols = col + 1;
     col++;
   }
 
-  // Clear only the used part of row 1 (e.g., A1:E1)
+  // Clear only the used portion of row 1 (A1:…)
   if (usedCols > 0) {
     sheet.getRangeByIndexes(0, 0, 1, usedCols)
          .clear(ExcelScript.ClearApplyTo.contents);
