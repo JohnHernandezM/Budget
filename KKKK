@@ -88,6 +88,26 @@ Data Validation:
   )
 )
 
+TESTING DAYS NO BLANKS
+=LET(
+  rowStart, 8,
+  lastRow, IFERROR(LOOKUP(2,1/(J:J<>""),ROW(J:J)), 0),
+  rowEnd, MAX(rowStart, lastRow),
+  rng, INDEX(J:J, rowStart):INDEX(J:J, rowEnd),
+  hasData, COUNTA(rng)>0,
+  IF(
+    hasData,
+    LET(
+      maxN, MAX(rng),
+      nums, maxN*2 + 1,
+      seq, SEQUENCE(1, nums),
+      "Day " & seq
+    ),
+    ""
+  )
+)
+
+
 
 *** Action/Done ***
 
