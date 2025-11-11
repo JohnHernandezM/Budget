@@ -1,3 +1,14 @@
+=LET(
+    tbl, B5:K29,
+    names, INDEX(tbl,,10),
+    criteria, C2,
+    IF(criteria="",
+        "",
+        FILTER(tbl, names=criteria)
+    )
+)
+
+
 Instructions
 1. Paste the initial Policy Data into Table 1, then begin working in Table 2. 
 2. [L]: Void   —  Enter all endorsements that need to be voided, separating each item with a comma.
