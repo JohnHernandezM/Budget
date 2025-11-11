@@ -1,64 +1,100 @@
 ==================================== SCRIPT COLUMN WIDTH ====================================
 
-
 function main(workbook: ExcelScript.Workbook) {
   const sheet = workbook.getActiveWorksheet();
   if (!sheet) return;
 
-  const TEMP_ROW = 5000; // off-screen helper row
+  const TEMP_ROW = 5000;
   const FONT_NAME = "Aptos Narrow";
   const FONT_SIZE = 11;
 
-  // Helper: build a string of N characters. Using "0" matches typical numeric widths.
-  const repeatChars = (count: number): string => {
-    if (!Number.isFinite(count) || count < 0) return "";
-    return "0".repeat(Math.max(0, Math.floor(count)));
+  // 0-based column index → Excel column letters (A, B, ..., AA, AB, ...)
+  const toColLetter = (idx: number): string => {
+    let n = idx + 1, s = "";
+    while (n > 0) {
+      const r = (n - 1) % 26;
+      s = String.fromCharCode(65 + r) + s;
+      n = Math.floor((n - 1) / 26);
+    }
+    return s;
   };
 
+  // --- 1) Calibrate MaxDigitWidth for Aptos Narrow 11 using 10 zeros and autofit ---
+  const calibCol = 0; // use column A for calibration
+  const calibCell = sheet.getCell(TEMP_ROW, calibCol);
+  const colLetterA = toColLetter(calibCol);
+
+  const prevVal = calibCell.getValue();
+  const prevWrap = calibCell.getFormat().getWrapText();
+
+  // Put "0000000000", set font & disable wrap
+  calibCell.setValue("0000000000");
+  const cfmt = calibCell.getFormat();
+  const cfont = cfmt.getFont();
+  cfont.setName(FONT_NAME);
+  cfont.setSize(FONT_SIZE);
+  cfmt.setWrapText(false);
+
+  // Autofit that column to the 10 zeros
+  cfmt.autofitColumns();
+
+  // Read resulting width in points and convert to pixels (96 dpi: 1 px = 0.75 pt)
+  const colRangeA = sheet.getRange(`${colLetterA}:${colLetterA}`);
+  const widthPointsFor10 = colRangeA.getFormat().getColumnWidth();
+  const widthPxFor10 = widthPointsFor10 / 0.75;
+
+  // Excel width formula: pixels ≈ floor(n * MaxDigitWidth + 5)
+  // Solve MaxDigitWidth from the 10-char calibration:
+  const maxDigitWidthPx = Math.max(1, (widthPxFor10 - 5) / 10);
+
+  // Clean up calibration cell: restore previous value and wrap (or clear if previously empty)
+  if (prevVal === "" || prevVal === null || prevVal === undefined) {
+    calibCell.clear(ExcelScript.ClearApplyTo.contents);
+  } else {
+    calibCell.setValue(prevVal);
+  }
+  calibCell.getFormat().setWrapText(prevWrap);
+
+  // --- 2) Apply widths per your inputs in Row 1, stop at first blank, then clear used cells ---
   let col = 0;       // A = 0
-  let usedCols = 0;  // how many headers we processed before first blank
+  let usedCols = 0;
 
   while (true) {
-    const cell = sheet.getCell(0, col); // Row 1, current column
+    const cell = sheet.getCell(0, col); // Row 1 (0-based), current column
     const v = cell.getValue();
 
-    // Stop at first blank
+    // Stop at the first blank
     if (v === "" || v === null || v === undefined) break;
 
-    // Accept numbers or numeric text like "12"
-    const n = (typeof v === "number") ? v : Number(v);
-    if (Number.isFinite(n) && n > 0) {
-      const tempCell = sheet.getCell(TEMP_ROW, col);
-      const prevVal = tempCell.getValue();
+    // Accept numbers or numeric text
+    const nChars = (typeof v === "number") ? v : Number(v);
+    if (Number.isFinite(nChars) && nChars >= 0) {
+      // Excel pixel width: floor(n * MaxDigitWidth + 5)
+      const targetPx = Math.floor(nChars * maxDigitWidthPx + 5);
+      const targetPoints = targetPx * 0.75; // back to points
 
-      // Put n characters, set font, then autofit this single cell (affects the whole column)
-      tempCell.setValue(repeatChars(n));
-      const fmt = tempCell.getFormat();
-      const font = fmt.getFont();
-      font.setName(FONT_NAME);
-      font.setSize(FONT_SIZE);
+      const colLetter = toColLetter(col);
+      const colRange = sheet.getRange(`${colLetter}:${colLetter}`);
+      const fmt = colRange.getFormat();
 
-      // Autofit only this cell's column based on its content
-      fmt.autofitColumns();
+      // Ensure wrap off so autofit/width obeys single-line width intent
+      fmt.setWrapText(false);
 
-      // Clean up temp cell
-      if (prevVal === "" || prevVal === null || prevVal === undefined) {
-        tempCell.clear(ExcelScript.ClearApplyTo.contents);
-      } else {
-        tempCell.setValue(prevVal);
-      }
+      // Finally set the width in points
+      fmt.setColumnWidth(targetPoints);
     }
 
     usedCols = col + 1;
     col++;
   }
 
-  // Clear only the used portion of row 1 (e.g., A1:E1)
+  // Clear only the used portion of row 1 (e.g., A1:E1 for your example)
   if (usedCols > 0) {
     sheet.getRangeByIndexes(0, 0, 1, usedCols)
          .clear(ExcelScript.ClearApplyTo.contents);
   }
 }
+
 
 
 
