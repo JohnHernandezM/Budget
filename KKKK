@@ -1,46 +1,35 @@
 ==================================== SCRIPT COLUMN WIDTH ====================================
 
 function main(workbook: ExcelScript.Workbook) {
-  // Get the active worksheet
   const sheet = workbook.getActiveWorksheet();
-  if (!sheet) {
-    console.log("No active sheet found.");
-    return;
-  }
+  if (!sheet) return;
 
-  // Get first row range
-  const firstRow = sheet.getRange("1:1");
-  if (!firstRow) {
-    console.log("Unable to access row 1.");
-    return;
-  }
+  let col = 0; // A = 0
+  let usedCols = 0;
 
-  // Get values safely
-  const rowValues = firstRow.getValues();
-  if (!rowValues || rowValues.length === 0) {
-    console.log("No values found in the first row.");
-    return;
-  }
+  while (true) {
+    const cell = sheet.getCell(0, col); // Row 1, current column
+    const v = cell.getValue();
 
-  const values = rowValues[0];
+    // Stop at first blank
+    if (v === "" || v === null || v === undefined) break;
 
-  // Loop through columns until a blank cell is found
-  for (let i = 0; i < values.length; i++) {
-    const val = values[i];
-
-    if (val === "" || val === null) break;
-
-    if (typeof val === "number") {
-      sheet.getRangeByIndexes(0, i, 1, 1).getColumn().setWidth(val);
+    // Coerce to number if it's text like "12"
+    const width = typeof v === "number" ? v : Number(v);
+    if (!Number.isNaN(width) && Number.isFinite(width)) {
+      sheet.getRangeByIndexes(0, col, 1, 1).getColumn().setWidth(width);
     }
+
+    usedCols = col + 1; // track how far we went
+    col++;
   }
 
-  // Clear contents of the first row to clean up
-  firstRow.clear(ExcelScript.ClearApplyTo.contents);
-
-  console.log("Column widths set and first row cleared successfully.");
+  // Clear only the used part of row 1 (e.g., A1:E1)
+  if (usedCols > 0) {
+    sheet.getRangeByIndexes(0, 0, 1, usedCols)
+         .clear(ExcelScript.ClearApplyTo.contents);
+  }
 }
-
 
 
 =============================================================================================
