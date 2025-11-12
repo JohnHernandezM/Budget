@@ -1,4 +1,20 @@
-https://resultados1978.icfesinteractivo.gov.co/resultados/res_est/sniee_log_per.jsp
+HELP PLEASE. I NEED TO UPDATE THE FORMULAS SO THAT NO MATTER THE BACKGROUND OF THE SHEET, MY RANGE MUST ALWAYS HAVE WHITE BACKGROUNDS, SO
+AND NO RED LINE CAN CROSS OVER IT. 
+
+HERE ARE THE FORMULAS I HAVE, AND THIS IS HOW IT LOOKS LIKE:
+
+
+=AND(NOT(N("MAIN | Left, Right")), $C5<>"", ROW()<MATCH("Policy Modifications", $F:$F, 0)-5 )
+
+=AND(NOT(N("COVERAGE TITLE| Bold")), $F5<>"")
+
+=AND(NOT(N("CONTENT | White Bg + T,B")), OR($C5<>"", $D5<>"", $E5<>"", $F5<>"",  $G5<>"", $H5<>""),  OR(ROW()>=MATCH("Policy Modifications", $F:$F, 0), ROW()<MATCH("Policy Modifications", $F:$F, 0)-4  ) )
+
+=AND(NOT(N("FACTORS - RESULTS | White Bg + L, R")), OR($C5<>"", $D5<>"", $E5<>"", $F5<>"", $G5<>"", $H5<>""),  ROW()>=MATCH("Policy Modifications", $F:$F, 0))
+
+
+
+
 
 =LET(
     tbl, B5:K29,
